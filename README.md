@@ -1,3 +1,2 @@
 # SPBA
-simulation platform based on AirSim.
-my_first_try 
+It's simulation platform based on AirSim.You can test your flight algorithm on this platform.
