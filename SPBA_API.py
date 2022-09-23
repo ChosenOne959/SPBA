@@ -5,6 +5,7 @@ import time
 from scipy import linalg
 import json
 
+nan = np.nan
 
 
 class AirSimSettings:
@@ -14,15 +15,19 @@ class AirSimSettings:
                                 "SettingsVersion": 1.2, "SimMode": "Multirotor"}
 
     def reset(self):
+        """
+        Set to default settings
+        """
         with open(self.path, 'w', encoding='utf8')as fp:
             json.dump(self.defaultSettings, fp, ensure_ascii=False)
 
     def set(self, key, value):
         """
-            See https://microsoft.github.io/AirSim/settings/ for details
+            See https://microsoft.github.io/AirSim/settings/ for more options
 
+            Most useful choices:
               "SimMode": 'Car','Multirotor','ComputerVision'
-              "ViewMode": 'FlyWithMe'(default),'GroundObserver','Fpv','Manual',SpringArmChase','NoDisplay'
+              "ViewMode": ""(default),'FlyWithMe'(drone default),'GroundObserver','Fpv','Manual',SpringArmChase'(car default),'NoDisplay'
         """
         with open(self.path, 'r', encoding='utf8')as fp:
             settings = json.load(fp)
@@ -40,44 +45,63 @@ class AirSimSettings:
         wind_speed = {"X": x, "Y": y, "Z": z}
         self.set('Wind', wind_speed)
 
-    def set_camera_director(self, x, y, z, pitch, roll, yaw, follow_distance=-3):
+    def set_camera_director(self, x=nan, y=nan, z=nan, pitch=nan, roll=nan, yaw=nan, follow_distance=-3):
         camera_director = {"FollowDistance": follow_distance, "X": x, "Y": y, "Z": z, "Pitch": pitch, "Roll": roll,
                            "Yaw": yaw}
         self.set('CameraDirector', camera_director)
 
-    def set_origin_geopoint(self, latitude, longitude, altitude):
+    def set_origin_geopoint(self, latitude=47.641468, longitude=-122.140165, altitude=122):
         origin_geopoint = {"Latitude": latitude, "Longitude": longitude, "Altitude": altitude}
         self.set('OriginGeopoint', origin_geopoint)
 
-    # TODO
-    def set_subwindows(self):
+    def set_subwindows(self, *subwindow):
         """
         This setting determines what is shown in each of 3 subwindows which are visible when you press 1,2,3 keys.
 
-        "SubWindows": [
-                {"WindowID": 0, "CameraName": "0", "ImageType": 3, "VehicleName": "", "Visible": false, "External": false},
-                {"WindowID": 1, "CameraName": "0", "ImageType": 5, "VehicleName": "", "Visible": false, "External": false},
-                {"WindowID": 2, "CameraName": "0", "ImageType": 0, "VehicleName": "", "Visible": false, "External": false}
-              ]
+        :param subwindow: use subwindow object
+        :return:
         """
+        subwindows_list = []
+        for i in subwindow:
+            subwindows_list.append(i)
+        self.set('SubWindows', subwindows_list)
 
-    # TODO
-    def set_external_camera(self):
+    def set_camera_defaults(self, x=nan, y=nan, z=nan, pitch=nan, roll=nan, yaw=nan,
+                            capture_settings=[],
+                            noise_settings=[],
+                            gimbal={},
+                            unreal_engine={}):
+        """
+        :param x:
+        :param y:
+        :param z:
+        :param pitch:
+        :param roll:
+        :param yaw:
+        :param capture_settings:(input capture_settings object)
+        :param noise_settings:(input noise_settings object)
+        :param gimbal:(input noise_settings object)
+        :param unreal_engine:(input unreal_engine object)
+        """
+        camera_defaults = self.camera_settings(x, y, z, pitch, roll, yaw, capture_settings, noise_settings, gimbal, unreal_engine)
+        self.set("CameraDefaults", camera_defaults)
+
+    def set_external_camera(self, camera_settings_1={}, camera_settings_2={}):
         """
         This element allows specifying cameras which are separate from the cameras attached to the vehicle,
         such as a CCTV camera. These are fixed cameras, and don't move along with the vehicles.
         The key in the element is the name of the camera, and the value i.e. settings are the same as CameraDefaults described above.
         All the camera APIs work with external cameras, including capturing images, changing the pose, etc by passing the parameter external=True in the API call.
 
-        "ExternalCameras": {
-            "FixedCamera1": {
-                // same elements as in CameraDefaults above
-            },
-            "FixedCamera2": {
-                // same elements as in CameraDefaults above
-            }
-          }
+        :param camera_settings_1:(input camera_settings object)
+        :param camera_settings_2:(input camera_settings object)
         """
+        external_cameras = {}
+        if not camera_settings_1:
+            external_cameras["FixedCamera1"] = camera_settings_1
+        if not camera_settings_2:
+            external_cameras["FixedCamera2"] = camera_settings_2
+        set("ExternalCameras", external_cameras)
 
     # TODO
     def set_pawn_path(self):
@@ -94,92 +118,26 @@ class AirSimSettings:
         """
         pass
 
-    # TODO
-    def set_recording(self, record_interval, record_on_move, folder, enabled, cameras):
+    def set_recording(self, folder="", record_interval=0.05,
+                      cameras=[{"CameraName": "0", "ImageType": 0, "PixelsAsFloat": False,  "VehicleName": "", "Compress": True}],
+                      record_on_move=False, enabled=False):
         """
         The recording feature allows you to record data such as position, orientation, velocity along with the captured image at specified intervals.
         You can start recording by pressing red Record button on lower right or the R key.
-        The data is stored in the Documents/AirSim folder (or the folder specified using Folder), in a time stamped subfolder for each recording session, as tab separated file.
+        The data is stored in the Documents/AirSim folder (or the folder specified using Folder),
+        in a time stamped subfolder for each recording session, as tab separated file.
+
+        :param record_interval: Specifies minimal interval in seconds between capturing two images.
+        :param record_on_move: specifies that do not record frame if there was vehicle's position or orientation hasn't changed.
+        :param folder: Where to store your recording data
+        :param enabled: Whether Recording should start from the beginning itself,
+        setting to true will start recording automatically when the simulation starts. By default, it's set to false
+        :param cameras: (input cameras object) By default scene image from camera 0 is recorded as compressed png format.
+        :return:
         """
         recording = {"RecordInterval": record_interval, "RecordOnMove": record_on_move, "Folder": folder,
                      "Enabled": enabled, "Cameras": cameras}
-        self.set('OriginGeopoint', recording)
-
-    # TODO
-    def set_camera_defaults(self, x, y, z, pitch, roll, yaw, capture_settings, noise_settings, gimbal, unreal_engine):
-        """
-
-        :param x:
-        :param y:
-        :param z:
-        :param pitch:
-        :param roll:
-        :param yaw:
-        :param capture_settings:
-        :param noise_settings:
-        :param gimbal:
-        :param unreal_engine:
-
-            "CameraDefaults": {
-                "CaptureSettings": [
-                  {
-                    "ImageType": 0,
-                    "Width": 256,
-                    "Height": 144,
-                    "FOV_Degrees": 90,
-                    "AutoExposureSpeed": 100,
-                    "AutoExposureBias": 0,
-                    "AutoExposureMaxBrightness": 0.64,
-                    "AutoExposureMinBrightness": 0.03,
-                    "MotionBlurAmount": 0,
-                    "TargetGamma": 1.0,
-                    "ProjectionMode": "",
-                    "OrthoWidth": 5.12
-                  }
-                ],
-                "NoiseSettings": [
-                  {
-                    "Enabled": false,
-                    "ImageType": 0,
-
-                    "RandContrib": 0.2,
-                    "RandSpeed": 100000.0,
-                    "RandSize": 500.0,
-                    "RandDensity": 2,
-
-                    "HorzWaveContrib":0.03,
-                    "HorzWaveStrength": 0.08,
-                    "HorzWaveVertSize": 1.0,
-                    "HorzWaveScreenSize": 1.0,
-
-                    "HorzNoiseLinesContrib": 1.0,
-                    "HorzNoiseLinesDensityY": 0.01,
-                    "HorzNoiseLinesDensityXY": 0.5,
-
-                    "HorzDistortionContrib": 1.0,
-                    "HorzDistortionStrength": 0.002
-                  }
-                ],
-                "Gimbal": {
-                  "Stabilization": 0,
-                  "Pitch": NaN, "Roll": NaN, "Yaw": NaN
-                },
-                "X": NaN, "Y": NaN, "Z": NaN,
-                "Pitch": NaN, "Roll": NaN, "Yaw": NaN,
-                "UnrealEngine": {
-                  "PixelFormatOverride": [
-                    {
-                      "ImageType": 0,
-                      "PixelFormat": 0
-                    }
-                  ]
-                }
-              }
-        """
-        camera_defaults = {"X": x, "Y": y, "Z": z, "Pitch": pitch, "Roll": roll, "Yaw": yaw,
-                           "CaptureSettings": capture_settings, "NoiseSettings": noise_settings, "Gimbal": gimbal,
-                           "UnrealEngine": unreal_engine}
-        self.set("CameraDefaults", camera_defaults)
+        self.set("Recording", recording)
 
     # TODO
     def set_vehicles(self):
@@ -232,6 +190,162 @@ class AirSimSettings:
               },
         """
         pass
+
+    @staticmethod
+    def camera(camera_name: str, image_type: int, vehicle_name: str, compress=True, pixels_as_float=False):
+        """
+        this element controls which cameras are used to capture images.
+        By default scene image from camera 0 is recorded as compressed png format.
+
+        :param camera_name:
+        :param image_type:(enum class)
+                Available ImageType Values:
+                  Scene = 0,
+                  DepthPlanar = 1,
+                  DepthPerspective = 2,
+                  DepthVis = 3,
+                  DisparityNormalized = 4,
+                  Segmentation = 5,
+                  SurfaceNormals = 6,
+                  Infrared = 7,
+                  OpticalFlow = 8,
+                  OpticalFlowVis = 9
+        :param pixels_as_float:
+        :param vehicle_name:
+        :param compress:
+        :return:camera object
+        """
+        camera = {"CameraName": camera_name, "ImageType": image_type, "PixelsAsFloat": pixels_as_float,
+                   "VehicleName": vehicle_name, "compress": compress}
+        return camera
+
+    @staticmethod
+    def cameras(*camera):
+        """
+        :param camera: use camera object(you can input at most 3 camera object as params)
+        :return: cameras object
+        """
+        cameras_list = []
+        for i in camera:
+            cameras.append(i)
+        return cameras_list
+
+    @staticmethod
+    def camera_settings(x=nan, y=nan, z=nan, pitch=nan, roll=nan, yaw=nan, capture_settings=[], noise_settings=[],
+                        gimbal={}, unreal_engine={}):
+        """
+        :param x:
+        :param y:
+        :param z:
+        :param pitch:
+        :param roll:
+        :param yaw:
+        :param capture_settings:(input capture_settings object)
+        :param noise_settings:(input noise_settings object)
+        :param gimbal:(input noise_settings object)
+        :param unreal_engine:(input unreal_engine object)
+        """
+        if not capture_settings:
+            capture_settings = AirSimSettings.capture_settings()
+        if not noise_settings:
+            noise_settings = AirSimSettings.noise_settings()
+        if not gimbal:
+            gimbal = AirSimSettings.gimbal()
+        if not unreal_engine:
+            unreal_engine = AirSimSettings.unreal_engine()
+
+        camera_settings = {"X": x, "Y": y, "Z": z, "Pitch": pitch, "Roll": roll, "Yaw": yaw,
+                           "CaptureSettings": capture_settings, "NoiseSettings": noise_settings, "Gimbal": gimbal,
+                           "UnrealEngine": unreal_engine}
+        return camera_settings
+
+    @staticmethod
+    def subwindow(window_id: int, image_type: int, camera_name="0", visible=True, external=False, vehicle_name=''):
+        """
+        This setting determines what is shown in each of 3 subwindows which are visible when you press 1,2,3 keys.
+
+        :param window_id:0,1,2
+        :param camera_name:
+        :param image_type:(enum class)
+        Scene = 0,
+        DepthPlanar = 1,
+        DepthPerspective = 2,
+        DepthVis = 3,
+        DisparityNormalized = 4,
+        Segmentation = 5,
+        SurfaceNormals = 6,
+        Infrared = 7,
+        OpticalFlow = 8,
+        OpticalFlowVis = 9
+        :param vehicle_name: Leave it empty if there is only one vehicle
+        :param external: Set it to true if the camera is an external camera. If true, then the VehicleName parameter is ignored
+        :param visible: Determine if the subwindow is visible
+        :return:
+        """
+        subwindow = {"WindowsID": window_id, "CameraName": camera_name, "ImageType": image_type,
+                     "Visible": visible}
+        if vehicle_name != '':
+            subwindow["VehicleName"] = vehicle_name
+        if external:
+            subwindow["External"] = external
+        return subwindow
+
+    # TODO
+    @staticmethod
+    def capture_settings(image_type=0, width=256, height=144, fov_degrees=90, auto_exposure_speed=100,
+                         auto_exposure_bias=0, auto_exposure_max_brightness=0.64, auto_exposure_min_brightness=0.03,
+                         motion_blur_amount=0, target_gamma=1.0, projection_mode="", ortho_width=5.12):
+        capture_settings_dict = {"ImageType": image_type, "Width": width, "Height":height, "FOV_Degrees": fov_degrees,
+                                 "AutoExposureSpeed": auto_exposure_speed, "AutoExposureBias": auto_exposure_bias,
+                                 "AutoExposureMaxBrightness": auto_exposure_max_brightness,
+                                 "AutoExposureMinBrightness": auto_exposure_min_brightness,
+                                 "MotionBlurAmount": motion_blur_amount, "TargetGamma": target_gamma,
+                                 "ProjectionMode": projection_mode, "OrhoWidth": ortho_width}
+        capture_settings = [capture_settings_dict]
+        return capture_settings
+
+    # TODO
+    @staticmethod
+    def noise_settings(enabled=False, image_type=0, rand_contrib=0.2, rand_speed=100000.0, rand_size=500.0,
+                       rand_density=2, horz_wave_contrib=0.03, horz_wave_strength=0.08, horz_wave_vert_size=1.0,
+                       horz_wave_screen_size=1.0, horz_noise_lines_contrib=1.0, horz_noise_lines_density_y=0.01,
+                       horz_noise_lines_density_xy=0.5, horz_distortion_contrib=1.0, horz_distortion_strength=0.002
+                       ):
+        noise_settings_dict = {"Enabled": enabled, "ImageType": image_type, "RandContrib": rand_contrib,
+                               "RandSpeed": rand_speed, "RandSize": rand_size, "RandDensity": rand_density,
+                               "HorzWaveContrib": horz_wave_contrib, "HorzWaveStrength": horz_wave_strength,
+                               "HorzWaveVertSize": horz_wave_vert_size, "HorzWaveScreenSize": horz_wave_screen_size,
+                               "HorzNoiseLinesContrib": horz_noise_lines_contrib,
+                               "HorzNoiseLinesDensityY": horz_noise_lines_density_y,
+                               "HorzNoiseLinesDensityXY": horz_noise_lines_density_xy,
+                               "HorzDistortionContrib": horz_distortion_contrib,
+                               "HorzDistortionStrength": horz_distortion_strength}
+        noise_settings = [noise_settings_dict]
+        return noise_settings
+
+    # TODO
+    @staticmethod
+    def gimbal(pitch=nan, roll=nan, yaw=nan, stabilization=0):
+        gimbal = {"Pitch": pitch, "Roll": roll, "Yaw": yaw, "Stabilization": stabilization}
+        return gimbal
+
+    # TODO
+    @staticmethod
+    def unreal_engine():
+        unreal_engine = {
+            "PixelFormatOverride": [
+                {
+                    "ImageType": 0,
+                    "PixelFormat": 0
+                }
+            ]
+        }
+        return unreal_engine
+
+
+
+
+
 
 
 def test_traj_creat():
@@ -370,5 +484,5 @@ if __name__ == '__main__':
     PATH = 'C:/Users/huyutong2020/Documents/AirSim/settings.json'
     settings = AirSimSettings(PATH)
     settings.reset()
-    settings.set_wind(1, 2, 3)
+    settings.set_camera_defaults()
     settings.print()
