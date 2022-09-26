@@ -1,3 +1,5 @@
+from typing import Any
+
 import airsim
 import numpy as np
 import math
@@ -5,7 +7,7 @@ import time
 from scipy import linalg
 import json
 
-nan = np.nan
+nan = float("nan")
 
 
 class AirSimSettings:
@@ -31,21 +33,63 @@ class AirSimSettings:
         """
         with open(self.path, 'r', encoding='utf8')as fp:
             settings = json.load(fp)
-            # print(settings)
             settings[key] = value
+            settings = self.remove_empty_key(settings)
+            # print('s_settings = ', settings)
         with open(self.path, 'w', encoding='utf8')as fp:
-            json.dump(settings, fp, ensure_ascii=False)
+            json.dump(settings, fp, ensure_ascii=False, allow_nan=True)
+            print(settings)
+            # str = json.dumps(settings, allow_nan=True)
+            # fp.write(str)
 
     def print(self):
         with open(self.path, 'r', encoding='utf8')as fp:
-            json_file = json.load(fp)
-            print(json_file)
+            # json_file = json.load(fp)
+            # print(json_file)
+            print(fp.read())
+
+    def remove_empty_key(self, info):
+        def isinstance(a, b):
+            return type(a) is b
+
+        if isinstance(info, dict):
+            info_re = dict()
+            for key, value in info.items():
+                if isinstance(value, dict) or isinstance(value, list):
+                    re = self.remove_empty_key(value)
+                    if len(re):
+                        info_re[key] = re
+                elif value not in ['', {}, [], 'null', nan]:
+                    info_re[key] = value
+            return info_re
+        elif isinstance(info, list):
+            info_re = list()
+            for value in info:
+                if isinstance(value, dict) or isinstance(value, list):
+                    re = self.remove_empty_key(value)
+                    if len(re):
+                        info_re.append(re)
+                elif value not in ['', {}, [], 'null', nan]:
+                    info_re.append(value)
+            return info_re
+        else:
+            print('输入非列表/字典')
+
+
 
     def set_wind(self, x=0, y=0, z=0):
+        """
+        This setting specifies the wind speed in World frame, in NED direction.
+        NED: x(North), y(East), z(Down)
+        """
         wind_speed = {"X": x, "Y": y, "Z": z}
         self.set('Wind', wind_speed)
 
-    def set_camera_director(self, x=nan, y=nan, z=nan, pitch=nan, roll=nan, yaw=nan, follow_distance=-3):
+    def set_camera_director(self, follow_distance=-3, x=nan, y=nan, z=nan, pitch=nan, roll=nan, yaw=nan):
+        """
+        Position is in NED coordinates in SI units with origin set to Player Start location in Unreal environment.
+        NED: x(North), y(East), z(Down)
+        """
         camera_director = {"FollowDistance": follow_distance, "X": x, "Y": y, "Z": z, "Pitch": pitch, "Roll": roll,
                            "Yaw": yaw}
         self.set('CameraDirector', camera_director)
@@ -58,7 +102,7 @@ class AirSimSettings:
         """
         This setting determines what is shown in each of 3 subwindows which are visible when you press 1,2,3 keys.
 
-        :param subwindow: use subwindow object
+        :param subwindow: (use subwindow object)
         :return:
         """
         subwindows_list = []
@@ -66,12 +110,12 @@ class AirSimSettings:
             subwindows_list.append(i)
         self.set('SubWindows', subwindows_list)
 
-    def set_camera_defaults(self, x=nan, y=nan, z=nan, pitch=nan, roll=nan, yaw=nan,
-                            capture_settings=[],
-                            noise_settings=[],
-                            gimbal={},
-                            unreal_engine={}):
+    def set_camera_defaults(self, x=nan, y=nan, z=nan, pitch=nan, roll=nan, yaw=nan, capture_settings=[],
+                            noise_settings=[], gimbal={}, unreal_engine={}):
         """
+        The CameraDefaults element at root level specifies defaults used for all cameras.
+        These defaults can be overridden for individual camera in Cameras element inside Vehicles as described later.
+
         :param x:
         :param y:
         :param z:
@@ -90,7 +134,7 @@ class AirSimSettings:
         """
         This element allows specifying cameras which are separate from the cameras attached to the vehicle,
         such as a CCTV camera. These are fixed cameras, and don't move along with the vehicles.
-        The key in the element is the name of the camera, and the value i.e. settings are the same as CameraDefaults described above.
+        The key in the element is the name of the camera.
         All the camera APIs work with external cameras, including capturing images, changing the pose, etc by passing the parameter external=True in the API call.
 
         :param camera_settings_1:(input camera_settings object)
@@ -101,7 +145,8 @@ class AirSimSettings:
             external_cameras["FixedCamera1"] = camera_settings_1
         if not camera_settings_2:
             external_cameras["FixedCamera2"] = camera_settings_2
-        set("ExternalCameras", external_cameras)
+        if not external_cameras:
+            self.set("ExternalCameras", external_cameras)
 
     # TODO
     def set_pawn_path(self):
@@ -265,19 +310,21 @@ class AirSimSettings:
         This setting determines what is shown in each of 3 subwindows which are visible when you press 1,2,3 keys.
 
         :param window_id:0,1,2
-        :param camera_name:
+        :param camera_name: any available camera on the vehicle or external camera
         :param image_type:(enum class)
-        Scene = 0,
-        DepthPlanar = 1,
-        DepthPerspective = 2,
-        DepthVis = 3,
-        DisparityNormalized = 4,
-        Segmentation = 5,
-        SurfaceNormals = 6,
-        Infrared = 7,
-        OpticalFlow = 8,
-        OpticalFlowVis = 9
-        :param vehicle_name: Leave it empty if there is only one vehicle
+            Scene = 0,
+            DepthPlanar = 1,
+            DepthPerspective = 2,
+            DepthVis = 3,
+            DisparityNormalized = 4,
+            Segmentation = 5,
+            SurfaceNormals = 6,
+            Infrared = 7,
+            OpticalFlow = 8,
+            OpticalFlowVis = 9
+        :param vehicle_name: String allows you to specify the vehicle to use the camera from,
+                            used when multiple vehicles are specified in the settings。
+                            Leave it empty if there is only one vehicle
         :param external: Set it to true if the camera is an external camera. If true, then the VehicleName parameter is ignored
         :param visible: Determine if the subwindow is visible
         :return:
@@ -290,11 +337,16 @@ class AirSimSettings:
             subwindow["External"] = external
         return subwindow
 
-    # TODO
     @staticmethod
     def capture_settings(image_type=0, width=256, height=144, fov_degrees=90, auto_exposure_speed=100,
                          auto_exposure_bias=0, auto_exposure_max_brightness=0.64, auto_exposure_min_brightness=0.03,
                          motion_blur_amount=0, target_gamma=1.0, projection_mode="", ortho_width=5.12):
+        """
+        :param auto_exposure_speed: Decides how fast eye adaptation works. We set to generally high value such as 100 to avoid artifacts（假像） in image capture.
+        :param projection_mode: Decides the projection used by the capture camera
+                                projection_mode = "perspective"(default),"orthographic"（正射投影？需要建议百度一下）
+        :param ortho_width: Determines width of projected area captured in meters.(only work at orthographic mode)
+        """
         capture_settings_dict = {"ImageType": image_type, "Width": width, "Height":height, "FOV_Degrees": fov_degrees,
                                  "AutoExposureSpeed": auto_exposure_speed, "AutoExposureBias": auto_exposure_bias,
                                  "AutoExposureMaxBrightness": auto_exposure_max_brightness,
@@ -304,13 +356,34 @@ class AirSimSettings:
         capture_settings = [capture_settings_dict]
         return capture_settings
 
-    # TODO
     @staticmethod
     def noise_settings(enabled=False, image_type=0, rand_contrib=0.2, rand_speed=100000.0, rand_size=500.0,
                        rand_density=2, horz_wave_contrib=0.03, horz_wave_strength=0.08, horz_wave_vert_size=1.0,
                        horz_wave_screen_size=1.0, horz_noise_lines_contrib=1.0, horz_noise_lines_density_y=0.01,
                        horz_noise_lines_density_xy=0.5, horz_distortion_contrib=1.0, horz_distortion_strength=0.002
                        ):
+        """
+        Random noise
+        :param rand_contrib: This determines blend ratio of noise pixel with image pixel, 0 means no noise and 1 means only noise
+        :param rand_speed: （随机干扰的变化速度）This determines how fast noise fluctuates, 1 means no fluctuation and higher values like 1E6 means full fluctuation.
+        :param rand_size:  （随机干扰的粒度）This determines how coarse noise is, 1 means every pixel has its own noise while higher value means more than 1 pixels share same noise value.
+        :param rand_density: （随机干扰的像素点数）This determines how many pixels out of total will have noise, 1 means all pixels while higher value means lesser number of pixels (exponentially)
+
+        Horizontal bump distortion(This adds horizontal bumps / flickering / ghosting effect)
+        :param horz_wave_contrib: This determines blend ratio of noise pixel with image pixel, 0 means no noise and 1 means only noise
+        :param horz_wave_strength: This determines overall strength of the effect
+        :param horz_wave_vert_size: This determines how many vertical pixels would be effected by the effect
+        :param horz_wave_screen_size: This determines how much of the screen is effected by the effect
+
+        Horizontal noise lines(This adds regions of noise on horizontal lines)
+        :param horz_noise_lines_contrib: This determines blend ratio of noise pixel with image pixel, 0 means no noise and 1 means only noise
+        :param horz_noise_lines_density_y: This determines how many pixels in horizontal line gets affected
+        :param horz_noise_lines_density_xy: This determines how many lines on screen gets affected
+
+        Horizontal line distortion(This adds fluctuations on horizontal line)
+        :param horz_distortion_contrib: This determines blend ratio of noise pixel with image pixel, 0 means no noise and 1 means only noise
+        :param horz_distortion_strength: This determines how large is the distortion
+        """
         noise_settings_dict = {"Enabled": enabled, "ImageType": image_type, "RandContrib": rand_contrib,
                                "RandSpeed": rand_speed, "RandSize": rand_size, "RandDensity": rand_density,
                                "HorzWaveContrib": horz_wave_contrib, "HorzWaveStrength": horz_wave_strength,
@@ -323,15 +396,23 @@ class AirSimSettings:
         noise_settings = [noise_settings_dict]
         return noise_settings
 
-    # TODO
     @staticmethod
     def gimbal(pitch=nan, roll=nan, yaw=nan, stabilization=0):
+        """
+        The Gimbal element allows to freeze camera orientation for pitch, roll and/or yaw
+        :param stabilization: defaulted to 0 meaning no gimbal (camera orientation changes with body orientation on all axis)
+                            The value of 1 means full stabilization.
+        :param yaw: When any of the angles(pitch, roll, yaw) is omitted from json or set to NaN, that angle is not stabilized
+        """
         gimbal = {"Pitch": pitch, "Roll": roll, "Yaw": yaw, "Stabilization": stabilization}
         return gimbal
 
     # TODO
     @staticmethod
     def unreal_engine():
+        """
+        This element contains settings specific to the Unreal Engine
+        """
         unreal_engine = {
             "PixelFormatOverride": [
                 {
