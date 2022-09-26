@@ -29,13 +29,21 @@ class MyMainWindow(QMainWindow,Ui_MainWindow): #这里也要记得改
         self.toolButton.clicked.connect(self.open_file)
         self.pushButton_4.clicked.connect(self.showExitDialog)
         self.comboBox.currentIndexChanged.connect(self.lineEdit.clear)
-        self.lineEdit.inputRejected.connect(self.showErrorDialog)
+        self.lineEdit.inputRejected.connect(lambda:self.showErrorDialog("path"))
+        self.lineEdit.editingFinished.connect(self.comfirm_path)
         self.actionworkplace.triggered.connect(self.showSubWin1)
 
     def open_file(self):
-        QtWidgets.QFileDialog.getExistingDirectory(self, "选取文件夹", os.getcwd())
-        dpath=os.getcwd()
-        self.lineEdit.setText(dpath)
+        comboBox_name=self.comboBox.currentText()
+        if comboBox_name=="Airsim":
+            dpath=QtWidgets.QFileDialog.getExistingDirectory(self, "Open Folder", os.getcwd())
+            dpath=dpath.replace('/','\\')
+            self.lineEdit.setText(dpath)
+        else:
+            fpath=QtWidgets.QFileDialog.getOpenFileName(self,"Open file",os.getcwd(),'Exe files(*.exe)')
+            fpath=str(fpath[0])
+            fpath=fpath.replace('/','\\')
+            self.lineEdit.setText(fpath)
     
     def showSubWin1(self):
         #self.hide()
@@ -70,10 +78,13 @@ class MyMainWindow(QMainWindow,Ui_MainWindow): #这里也要记得改
         if return_value==QMessageBox.Yes:
             self.close()
     
-    def showErrorDialog(self):
+    def showErrorDialog(self,Dialog_type):
         msgBox = QMessageBox()
         msgBox.setIcon(QMessageBox.Critical)
-        msgBox.setText("Format Error,please check your path")
+        if Dialog_type=="path":
+            msgBox.setText("Format Error,please check your path")
+        if Dialog_type=="start":
+            msgBox.setText("Failed to start the App,please check your path")
         msgBox.setWindowTitle("Error")
         msgBox.setStandardButtons(QMessageBox.Ok)
         msgBox.exec()
@@ -100,19 +111,28 @@ class MyMainWindow(QMainWindow,Ui_MainWindow): #这里也要记得改
         print("UE4:",self.UE4dir)
         if(name=='UE4'):
             try:
-                os.startfile(self.UE4dir)
-                print("successed to open UE4")
+                if self.UE4dir!="":
+                    os.startfile(self.UE4dir)
+                    print("successed to open UE4")
+                else:
+                    self.showErrorDialog("start")
             except Exception as e:
                 print("failed to open the UE4")
         if(name=='matlab'):
             try:
-                os.startfile(self.matlab)
-                print("successed to open matlab")
+                if self.matlab!="":
+                    os.startfile(self.matlab)
+                    print("successed to open matlab")
+                else:
+                    self.showErrorDialog("start")
             except Exception as e:
                 print("failed to open the matlab")
         if(name=='vs'):
             try:
-                os.startfile(self.vs)
-                print("successed to open vs")
+                if self.vs!="":
+                    os.startfile(self.vs)
+                    print("successed to open vs")
+                else:
+                    self.showErrorDialog("start")
             except Exception as e:
                 print("failed to open the vs")       
