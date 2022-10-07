@@ -272,7 +272,7 @@ class AirSimSettings:
         """
         cameras_list = []
         for i in camera:
-            cameras.append(i)
+            cameras_list.append(i)
         return cameras_list
 
     @staticmethod
@@ -560,10 +560,15 @@ def LQR_fly_test():
     client.armDisarm(False)  # 上锁
     client.enableApiControl(False)  # 释放控制权
 
+def init():
+    client = airsim.MultirotorClient()  # connect to the AirSim simulator
+    client.enableApiControl(True)  # 获取控制权
+    client.armDisarm(True)  # 解锁
+    client.takeoffAsync().join()  # 起飞
+
 
 if __name__ == '__main__':
     PATH = 'C:/Users/huyutong2020/Documents/AirSim/settings.json'
     settings = AirSimSettings(PATH)
     settings.reset()
-    settings.set_camera_defaults()
-    settings.print()
+
