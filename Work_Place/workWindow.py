@@ -1,6 +1,5 @@
-<<<<<<< HEAD
 import subprocess
-from Ui_workplace import Ui_Work_Win
+from Work_Place.Ui_workplace import Ui_Work_Win
 import sys
 from PyQt5.QtWidgets import QApplication,QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
 from PyQt5 import QtWidgets,QtCore
@@ -12,7 +11,8 @@ import time
 import pandas as pd
 import numpy as np
 import re
-from Data_display import MyDisplayWindow
+from Data_display.Data_display import MyDisplayWindow
+from Realtime.realtime import MyRealtime 
 class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win): 
     def __init__(self,parent=None):
         super(MyworkWindow,self).__init__(parent)
@@ -84,6 +84,10 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         self.Display_Win=MyDisplayWindow()
         self.Display_Win.show()
     
+    def Show_realtime_Window(self):
+        self.Realtime_Win=MyRealtime()
+        self.Realtime_Win.show()
+    
 
     def showGraphic(self,path):
         img=cv2.imread(path)
@@ -103,6 +107,7 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         self.DroneModel.show()
 
     def runCode(self):
+        self.Show_realtime_Window()
         run_time=time.localtime()
         run_date="<"+str(run_time.tm_year)+"/"+str(run_time.tm_mon)+"/"+str(run_time.tm_mday)+">"
         run_clock=str(run_time.tm_hour)+":"+str(run_time.tm_min).rjust(2,'0')
@@ -189,52 +194,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     myWin = MyworkWindow()
     myWin.show()
-=======
-from hashlib import new
-from Ui_workplace import Ui_Form
-import sys
-from PyQt5.QtWidgets import QApplication,QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
-from PyQt5 import QtWidgets
-from PyQt5.QtGui import QPixmap,QImage
-import cv2
-class MyworkWindow(QtWidgets.QWidget,Ui_Form): #这里也要记得改
-    def __init__(self,parent=None):
-        super(MyworkWindow,self).__init__(parent)
-        self.setupUi(self)
-        self.set_myUI()
-        self.showGraphic()
-    
-    def showGraphic(self):
-        path='C:/Users/asus/Desktop/unreal.jpg'
-        img=cv2.imread(path)
-        img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
-        x=img.shape[1]
-        y=img.shape[0]
-        ratio=float(y/x)
-        newx=180
-        newy=int(newx*ratio)
-        img=cv2.resize(img,(newx,newy))
-        frame=QImage(img,newx,newy,QImage.Format_RGB888)
-        pix=QPixmap.fromImage(frame)
-        self.item=QGraphicsPixmapItem(pix)
-        self.scene=QGraphicsScene()
-        self.scene.addItem(self.item)
-        self.DroneModel.setScene(self.scene)
-        self.DroneModel.show()
-
-
-
-
-    def set_myUI(self):
-        print("start")
-        self.commandLinkButton.clicked.connect(self.close)
-
-    def mainWindow(self):
-        self.close()
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    myWin = MyworkWindow()
-    myWin.show()
->>>>>>> 42db3926bd934d42ba8ee1511fbce63ae75061af
     sys.exit(app.exec_())    

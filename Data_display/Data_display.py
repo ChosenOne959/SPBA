@@ -1,7 +1,4 @@
-import symbol
-from turtle import color, pensize, width
-from Ui_Data_display import Ui_Display_Win
-from Ui_Data_display import Ui_Display_Win
+from Data_display.Ui_Data_display import Ui_Display_Win
 from PyQt5.QtWidgets import QApplication,QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
 from PyQt5 import QtWidgets,QtCore
 from PyQt5.QtGui import QPixmap,QImage

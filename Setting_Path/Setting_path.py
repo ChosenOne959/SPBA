@@ -1,15 +1,14 @@
 from fileinput import close
 from importlib.resources import path
-import sys
 import os
 from wsgiref.validate import validator
 from PyQt5.QtWidgets import QMainWindow, QMessageBox,QApplication
 from PyQt5 import QtWidgets,QtCore,QtGui
-from Ui_Setting_path import Ui_MainWindow  #导入你写的界面类
+from Setting_Path.Ui_Setting_path import Ui_MainWindow  
 import re
-from workWindow import MyworkWindow
+from Work_Place.workWindow import MyworkWindow
 
-class MyMainWindow(QMainWindow,Ui_MainWindow): #这里也要记得改
+class MyMainWindow(QMainWindow,Ui_MainWindow): 
     def __init__(self,parent =None):
         super(MyMainWindow,self).__init__(parent)
         self.setupUi(self)
