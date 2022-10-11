@@ -1,4 +1,4 @@
-from Setting_Path.Setting_path import MyMainWindow
+from Setting_Path.settingWindow import MyMainWindow
 import sys
 from PyQt5.QtWidgets import QApplication    
 if __name__ == "__main__":

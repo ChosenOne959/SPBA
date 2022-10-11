@@ -1,7 +1,7 @@
 import subprocess
 from Work_Place.Ui_workplace import Ui_Work_Win
 import sys
-from PyQt5.QtWidgets import QApplication,QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
+from PyQt5.QtWidgets import QApplication,QGraphicsView, QMessageBox,QGraphicsScene, QGraphicsPixmapItem
 from PyQt5 import QtWidgets,QtCore
 from PyQt5.QtGui import QPixmap,QImage
 from PyQt5.QtCore import QTimer
@@ -11,18 +11,25 @@ import time
 import pandas as pd
 import numpy as np
 import re
-from Data_display.Data_display import MyDisplayWindow
-from Realtime.realtime import MyRealtime 
+from Data_display.dataWindow import MyDisplayWindow
+from Realtime.realtimeWindow import MyRealtime
+import json
 class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win): 
     def __init__(self,parent=None):
         super(MyworkWindow,self).__init__(parent)
         self.setupUi(self)
-        self.Rotor_params_path="D:/Airsim/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"
+        self.configurefile_path = './Setting_Path/configuration_file.json'
+        self.file_path_configure()
+        self.Rotor_params_path=self.airsim_path+"/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"
         self.set_myUI()
         self.init_Rotor_params()
         self.init_Body_params()
         self.init_kineatic()
-        
+    
+    def file_path_configure(self):
+        with open(self.configurefile_path,'r') as cpfile:
+            self.cfile=json.load(cpfile)
+        self.airsim_path=self.cfile['path']['Airsim']
 
     def set_myUI(self):
         self.commandLinkButton.clicked.connect(self.close)
@@ -107,42 +114,48 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         self.DroneModel.show()
 
     def runCode(self):
-        self.Show_realtime_Window()
-        run_time=time.localtime()
-        run_date="<"+str(run_time.tm_year)+"/"+str(run_time.tm_mon)+"/"+str(run_time.tm_mday)+">"
-        run_clock=str(run_time.tm_hour)+":"+str(run_time.tm_min).rjust(2,'0')
-        self.textBrowser.append(run_date)
-        self.textBrowser.append(run_clock)
-        flag=0
-        code=self.textEdit.toPlainText()
-        file_path="D:/Uav_hardware_in_the_loop_simulation_platform/qtProect/codefile.py "
-        with open(file_path,'w+') as codefile:
-            codefile.write(code)
         try:
-            subprocess.check_call("python codefile.py 2>error.txt ",shell=True)
-        except Exception as e:
-            flag=1
-            with open("error.txt",'r') as mes:
-                for i in mes:
-                    self.textBrowser.append(i) 
-        if flag==1:
+            self.Show_realtime_Window()
+            run_time=time.localtime()
+            run_date="<"+str(run_time.tm_year)+"/"+str(run_time.tm_mon)+"/"+str(run_time.tm_mday)+">"
+            run_clock=str(run_time.tm_hour)+":"+str(run_time.tm_min).rjust(2,'0')
+            self.textBrowser.append(run_date)
+            self.textBrowser.append(run_clock)
             flag=0
-        else:
-            self.textBrowser.append("compiled successfully!!")
-            self.pushButton_3.setEnabled(True)
+            code=self.textEdit.toPlainText()
+            file_path="codefile.py "
+            with open(file_path,'w+') as codefile:
+                codefile.write(code)
+            try:
+                subprocess.check_call("python codefile.py 2>error.txt ",shell=True)
+            except Exception as e:
+                flag=1
+                with open("error.txt",'r') as mes:
+                    for i in mes:
+                        self.textBrowser.append(i) 
+            if flag==1:
+                flag=0
+            else:
+                self.textBrowser.append("compiled successfully!!")
+                self.pushButton_3.setEnabled(True)
 
-        os.remove("error.txt")
-        os.remove("codefile.py")
-
+            os.remove("error.txt")
+            os.remove("codefile.py")
+        except Exception as e:
+            self.textBrowser.append("Failed to connect to unreal project!")
     def alter(self,name):
+        '''
+        The file name need to be modified later to change different params
+
+        '''
         init_flag=0
         if self.tabWidget.currentIndex()==0:
-            file="D:/Airsim/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"
+            file=self.airsim_path+"/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"
         if self.tabWidget.currentIndex()==1:
-            file="D:/Airsim/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"
+            file=self.airsim_path+"/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"
             init_flag=1
         if self.tabWidget.currentIndex()==2:
-            file="D:/Airsim/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"
+            file=self.airsim_path+"/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"
             init_flag=2
         
         if name == "Thrust":
@@ -189,9 +202,3 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
 
     def mainWindow(self):
         self.close()
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    myWin = MyworkWindow()
-    myWin.show()
-    sys.exit(app.exec_())    
