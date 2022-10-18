@@ -428,17 +428,23 @@ class GroundTruthEstimation(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.client = airsim.MultirotorClient()
-        self.dt = 1
+        self.dt = 1     # period for running GroundTruth Estimation
         self.ImuData = {}
         self.BarometerData = {}
         self.MagnetometerData = {}
         self.GpsData = {}
+        self.KinematicsState = {}
+        self.EnvironmentState = {}
+        self.RotorStates = {}
 
     def run(self):    #把要执行的代码写到run函数里面 调用start创建线程来运行run函数
         print("Starting GroundTruthEstimation")
         while True:
             self.update_sensor_data()
             print("Sensor Updated!")
+            self.KinematicsState = self.client.simGetGroundTruthKinematics()
+            self.EnvironmentState = self.client.simGetGroundTruthEnvironment()
+            self.RotorStates = self.client.getRotorStates()
             self.update_estimation()
             time.sleep(self.dt)
 
@@ -479,8 +485,8 @@ class Control:
     # tracking
     def moveOnPathAsync(self, path, velocity, lookahead=-1, adaptive_lookahead=1, vehicle_name=''):
         timeout_sec = 3e+38
-        drivetrain = DrivetrainType.MaxDegreeOfFreedom
-        yaw_mode = YawMode()
+        drivetrain = airsim.DrivetrainType.MaxDegreeOfFreedom
+        yaw_mode = airsim.YawMode()
         return self.client.moveOnPathAsync(path, velocity, timeout_sec, drivetrain, yaw_mode,
         lookahead, adaptive_lookahead, vehicle_name)
 
@@ -555,6 +561,19 @@ class Multirotor:
     def __init__(self):
         self.client = airsim.MultirotorClient()
         self.flight_control = Control()
+
+    # controller gains
+    def setAngleRateControllerGains(self, angle_rate_gains, vehicle_name=''):
+        self.client.setAngleRateControllerGains(angle_rate_gains, vehicle_name)
+
+    def setAngleLevelControllerGains(self, angle_level_gains, vehicle_name=''):
+        self.client.setAngleLevelControllerGains(angle_level_gains, vehicle_name)
+
+    def setVelocityControllerGains(self, velocity_gains, vehicle_name=''):
+        self.client.setVelocityControllerGains(velocity_gains, vehicle_name)
+
+    def setPositionControllerGains(self, position_gains, vehicle_name=''):
+        self.client.setPositionControllerGains(position_gains, vehicle_name)
 
     # create trajectory
     @staticmethod
@@ -637,5 +656,6 @@ if __name__ == '__main__':
     PATH = 'C:/Users/huyutong2020/Documents/AirSim/settings.json'
     settings = AirSimSettings(PATH)
     settings.reset()
-    drone = Multirotor()
-    drone.LQR_fly_test()
+    settings.set('SimMode','Car')
+    # drone = Multirotor()
+    # drone.LQR_fly_test()
