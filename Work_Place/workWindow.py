@@ -13,6 +13,7 @@ import numpy as np
 import re
 from Data_display.dataWindow import MyDisplayWindow
 from Realtime.realtimeWindow import MyRealtime
+from Realtime.realtime_sensor_Window import MysensorWindow
 import json
 class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win): 
     def __init__(self,parent=None):
@@ -27,14 +28,20 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         self.init_kineatic()
     
     def file_path_configure(self):
+        """
+        file_path_configure : read the congiguration file and set the right path for airsim_path
+        """
         with open(self.configurefile_path,'r') as cpfile:
             self.cfile=json.load(cpfile)
         self.airsim_path=self.cfile['path']['Airsim']
 
     def set_myUI(self):
+        """
+        set_myUI : set basic signal slots
+        """
         self.commandLinkButton.clicked.connect(self.close)
         self.pushButton.clicked.connect(self.runCode)
-        self.pushButton_2.clicked.connect(self.textBrowser.clear)
+        self.pushButton_2.clicked.connect(self.stop_running)
         self.pushButton_3.clicked.connect(self.Show_Display_Window)
         self.Thrust_SpinBox.valueChanged.connect(lambda:self.alter("Thrust"))
         self.Torque_SpinBox.valueChanged.connect(lambda:self.alter("Torque"))
@@ -45,7 +52,18 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         self.MaxThrust_SpinBox.valueChanged.connect(lambda:self.alter("MaxThrust"))
         self.MaxTorque_SpinBox.valueChanged.connect(lambda:self.alter("MaxTorque"))
         
+    def stop_running(self):
+        """
+        stop_running : close the realtime window and clear the compile information when user want to stop running
+        """
+        self.Realtime_Sensor_Win.close()
+        self.Realtime_Graph_Win.close()
+        self.textBrowser.clear()
+
     def init_Rotor_params(self):
+        """
+        init_Rotor_params : read the Rotor params file and complete the initialization 
+        """
         with open(self.Rotor_params_path,"r+") as file:
             for line in file:
                 Thrust_str="".join(re.findall(r'real_T C_T = (.*?)f',line))
@@ -82,21 +100,43 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
                     self.MaxTorque_SpinBox.setProperty("value",float(MaxTorque_str))
 
     def init_Body_params(self):
+        """
+        init_Body_params : read the body params file and complete the initialization
+        """
         body=None
     
     def init_kineatic(self):
+        """
+        init_kineatic : read the kineatic params file and complete the initialization
+        """
         kineatic=None
     
     def Show_Display_Window(self):
+        """
+        Show_Display_Window : show the recording result when the "display" button is stimulated
+        """
         self.Display_Win=MyDisplayWindow()
         self.Display_Win.show()
     
     def Show_realtime_Window(self):
-        self.Realtime_Win=MyRealtime()
-        self.Realtime_Win.show()
+        """
+        Show_realtime_Window : show the realtime window when the "run" button is stimulated
+        """
+        #self.Realtime_Graph_Win=MyRealtime()
+        self.Realtime_Sensor_Win=MysensorWindow()
+        #self.Realtime_Graph_Win.show()
+        self.Realtime_Sensor_Win.show()
+
     
 
     def showGraphic(self,path):
+        """
+        showGraphic : show drone model 
+        further : the drone model picture will change as the choice of user changes 
+
+        Args:
+            path : the path of picture 
+        """
         img=cv2.imread(path)
         img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
         x=img.shape[1]
@@ -114,6 +154,11 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         self.DroneModel.show()
 
     def runCode(self):
+        """
+        runCode : when the "run" button is clicked,complete showing realtime window,showing the timestamp,
+                    compile the code and display the compile information.
+                    If the unreal project is not ready,this process will report an error.
+        """
         try:
             self.Show_realtime_Window()
             run_time=time.localtime()
@@ -128,34 +173,46 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
                 codefile.write(code)
             try:
                 subprocess.check_call("python codefile.py 2>error.txt ",shell=True)
+                '''
+                in order to catch the compile information ,need to control the child thread and wait it 
+                '''
+
             except Exception as e:
                 flag=1
                 with open("error.txt",'r') as mes:
+                    '''
+                    when the error appears,the error information will be writen into the error file and show its contain on the textBrower
+                    '''
                     for i in mes:
                         self.textBrowser.append(i) 
             if flag==1:
                 flag=0
             else:
                 self.textBrowser.append("compiled successfully!!")
-                self.pushButton_3.setEnabled(True)
+                #self.pushButton_3.setEnabled(True)
+                self.pushButton_2.setEnabled(True)
 
             os.remove("error.txt")
             os.remove("codefile.py")
         except Exception as e:
             self.textBrowser.append("Failed to connect to unreal project!")
-    def alter(self,name):
-        '''
-        The file name need to be modified later to change different params
 
-        '''
+    def alter(self,name):
+        """
+        alter : when user adjust the params through the SpinBox,the corresponding file will be modified
+        further : the file will be changed.this module need to be combined with the init_body,init_kineatic method 
+
+        Args:
+            name: the names of the params,which have been changed by user
+        """
         init_flag=0
         if self.tabWidget.currentIndex()==0:
             file=self.airsim_path+"/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"
         if self.tabWidget.currentIndex()==1:
-            file=self.airsim_path+"/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"
+            file=self.airsim_path+"/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"      #need to be modified 
             init_flag=1
         if self.tabWidget.currentIndex()==2:
-            file=self.airsim_path+"/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"
+            file=self.airsim_path+"/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp"      #need to be modified 
             init_flag=2
         
         if name == "Thrust":

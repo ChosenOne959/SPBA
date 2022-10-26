@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\Uav_hardware_in_the_loop_simulation_platform\qtProect\workplace.ui'
+# Form implementation generated from reading ui file 'd:\SPBA\Work_Place\workplace.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.4
 #
@@ -133,6 +133,7 @@ class Ui_Work_Win(object):
         self.pushButton_3.setObjectName("pushButton_3")
         self.verticalLayout.addWidget(self.pushButton_3)
         self.pushButton_2 = QtWidgets.QPushButton(self.verticalLayoutWidget)
+        self.pushButton_2.setEnabled(False)
         self.pushButton_2.setObjectName("pushButton_2")
         self.verticalLayout.addWidget(self.pushButton_2)
         self.textBrowser = QtWidgets.QTextBrowser(self.verticalLayoutWidget)

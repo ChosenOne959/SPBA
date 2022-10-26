@@ -8,6 +8,12 @@ import numpy as np
 import cv2
 import os
 class MyDisplayWindow(QtWidgets.QWidget,Ui_Display_Win): 
+    """
+    MyDisplayWindow : show the recoding result when the recoding start.If user doesn't start recoding and "display" button is clicked,
+                      it will show the last result.What's more should be noticed is that I changed the resouce code in the airsim related to
+                      recording.Therefor,there are more information I can get.We should take this into consederation later.This module is best
+                      left unenabled before the "recoding" control button is produced.
+    """
     def __init__(self,parent=None):
         super(MyDisplayWindow,self).__init__(parent)
         self.setupUi(self)
@@ -20,6 +26,9 @@ class MyDisplayWindow(QtWidgets.QWidget,Ui_Display_Win):
         self.init_timer()
 
     def init_timer(self):
+        """
+        init_timer : initialize the timer and turn on timing
+        """
         self.graph_interval=QTimer(self)
         self.graph_interval.timeout.connect(self.Time_Out)
         self.time_interval=100
@@ -65,6 +74,9 @@ class MyDisplayWindow(QtWidgets.QWidget,Ui_Display_Win):
         self.acc_z_temp=[]
 
     def Time_Out(self):
+        """
+        Time_Out : handle different events when time is out
+        """
         if self.timeCount<self.countSum:
             self.Position_Display_Clear()
             self.Sensor_Display_Clear()
@@ -95,7 +107,13 @@ class MyDisplayWindow(QtWidgets.QWidget,Ui_Display_Win):
             self.graph_interval.stop()
     
     def Latest_File(self):
-        path="C:/Users/asus/Documents/AirSim/"
+        """
+        Latest_File : find the latest folder which contains the latest recording result 
+
+        Returns:
+            the latest folder path
+        """
+        path="C:/Users/asus/Documents/AirSim/"   #the default path if user dosen't change it,maybe there are more work to do
         lists=os.listdir(path)
         lists.sort(key=lambda x:os.path.getmtime((path+"\\"+x)))
         if lists[-1]=="settings.json":
@@ -106,6 +124,15 @@ class MyDisplayWindow(QtWidgets.QWidget,Ui_Display_Win):
 
 
     def Data_split(self,dataname):
+        """
+        Data_split : read the recording result file and split it based on the header
+
+        Args:
+            dataname : the name of the needed data
+
+        Returns:
+            return the data in array format
+        """
         data=pd.read_csv(self.Data_path,sep='\t',header=None)
         for i in range(len(data.iloc[0,:])):
             if data[i][0] == dataname:
@@ -148,6 +175,15 @@ class MyDisplayWindow(QtWidgets.QWidget,Ui_Display_Win):
             self.Segment_view.show()
     
     def Position_Display(self,X,Y,Z,axis):
+        """
+        Position_Display : Show the data dynamically.The "GraphView" must be improved to plotWidget,and then the data can be shown.
+
+        Args:
+            X: X-axis coordinates
+            Y: Y-axis coordinates
+            Z: Z-axis coordinates
+            axis: time-axis coordinates
+        """
         self.Position.addLegend()
         self.Position.plot(axis,X,pen=(1,3),name="POS_X")
         self.Position.plot(axis,Y,pen=(2,3),name="POS_Y")
@@ -195,7 +231,6 @@ class MyDisplayWindow(QtWidgets.QWidget,Ui_Display_Win):
         self.acceleration.plot(axis,acx,pen=(1,3),name="Acc_X")
         self.acceleration.plot(axis,acy,pen=(2,3),name="Acc_Y")
         self.acceleration.plot(axis,acz,pen=(3,3),name="Acc_Z")
-        #self.Position.setBackground('w')
         self.acceleration.setLabel('bottom',"time/ms")
         self.acceleration.setLabel('left',"Acceleration")
     

@@ -10,23 +10,28 @@ class MyRealtime(QtWidgets.QWidget,Ui_Realtime):
     def __init__(self,parent=None):
         super(MyRealtime,self).__init__(parent)
         self.setupUi(self)
-        self.init_airsim_getImage()
+        self.init_airsim()
         self.init_timer()
         
         
-    def init_airsim_getImage(self): 
-        self.client = airsim.MultirotorClient()
-        self.client.confirmConnection()
-        self.client.enableApiControl(True)
-        self.client.armDisarm(True)
+    def init_airsim(self): 
+        self.client_camera = airsim.MultirotorClient()
+        self.client_camera.confirmConnection()
+        self.client_camera.enableApiControl(True)
+        self.client_camera.armDisarm(True)
     
-    def stop_airsim_getImage(self):
-        self.client.armDisarm(False)
-        self.client.enableApiControl(False)
+    def release_airsim(self):
+        self.client_camera.reset()
+        self.client_camera.armDisarm(False)
+        self.client_camera.enableApiControl(False)
+        self.graph_interval.stop()
 
-    def start(self):
+    def start_takeImage(self):
+        """
+        start_takeImage : obtain the image catched by the five cameras attached with the multirotor
+        """
         list=[]
-        self.responses = self.client.simGetImages([airsim.ImageRequest(0,airsim.ImageType.Scene),airsim.ImageRequest(1,airsim.ImageType.Scene),airsim.ImageRequest(2,airsim.ImageType.Scene),airsim.ImageRequest(3,airsim.ImageType.Scene),airsim.ImageRequest(4,airsim.ImageType.Scene)])
+        self.responses = self.client_camera.simGetImages([airsim.ImageRequest(0,airsim.ImageType.Scene),airsim.ImageRequest(1,airsim.ImageType.Scene),airsim.ImageRequest(2,airsim.ImageType.Scene),airsim.ImageRequest(3,airsim.ImageType.Scene),airsim.ImageRequest(4,airsim.ImageType.Scene)])
         for i in range(len(self.responses)):
                 file_name="photo_"+str(i)+".png"
                 list.append(file_name)
@@ -37,12 +42,12 @@ class MyRealtime(QtWidgets.QWidget,Ui_Realtime):
     def init_timer(self):
         self.graph_interval=QTimer(self)
         self.graph_interval.timeout.connect(self.Time_Out)
-        self.time_interval=0.05
+        self.time_interval=40
         self.graph_interval.start(self.time_interval)
        
     
     def Time_Out(self):
-        self.start()
+        self.start_takeImage()
         for i in range(len(self.responses)):
             os.remove("photo_"+str(i)+".png")
   
@@ -77,3 +82,16 @@ class MyRealtime(QtWidgets.QWidget,Ui_Realtime):
             self.back_center.setScene(scene)
             self.back_center.show()
 
+    def closeEvent(self, event):
+            reply = QtWidgets.QMessageBox.question(self,
+                                                'Attention',
+                                                "you do want to exit ?",
+                                                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                                                QtWidgets.QMessageBox.No)
+            if reply == QtWidgets.QMessageBox.Yes:
+                event.accept()
+                self.release_airsim()
+                
+
+            else:
+                event.ignore()

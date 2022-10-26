@@ -290,6 +290,9 @@
     </item>
     <item>
      <widget class="QPushButton" name="pushButton_2">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="text">
        <string>stop</string>
       </property>

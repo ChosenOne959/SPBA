@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>sensorData</class>
+ <widget class="QWidget" name="sensorData">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1204</width>
+    <height>846</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <widget class="QWidget" name="gridLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>20</y>
+     <width>1141</width>
+     <height>811</height>
+    </rect>
+   </property>
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="3" column="0">
+     <widget class="plotWidget" name="magnetometer"/>
+    </item>
+    <item row="0" column="2">
+     <widget class="plotWidget" name="imu_angular"/>
+    </item>
+    <item row="3" column="1">
+     <widget class="plotWidget" name="gps_geo"/>
+    </item>
+    <item row="0" column="0" rowspan="3" colspan="2">
+     <widget class="QGraphicsView" name="Main_View"/>
+    </item>
+    <item row="2" column="2">
+     <widget class="plotWidget" name="imu_linear"/>
+    </item>
+    <item row="3" column="2">
+     <widget class="plotWidget" name="barometer"/>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>plotWidget</class>
+   <extends>QGraphicsView</extends>
+   <header location="global">pyqtgraph.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
