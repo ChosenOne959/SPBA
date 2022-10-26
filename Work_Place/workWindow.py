@@ -76,28 +76,28 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
                 MaxTorque_str="".join(re.findall(r'real_T torque = (.*?)f',line))
                 if Thrust_str!="":
                     self.Thrust_old_str="real_T C_T = "+Thrust_str
-                    self.Thrust_SpinBox.setProperty("value", float(Thrust_str))
+                    self.Thrust_SpinBox.setProperty("value", eval(Thrust_str))
                 if Torque_str!="":
                     self.Torque_old_str="real_T C_P = "+Torque_str
-                    self.Torque_SpinBox.setProperty("value", float(Torque_str))
+                    self.Torque_SpinBox.setProperty("value", eval(Torque_str))
                 if Air_str!="":
                     self.Air_old_str="real_T air_density = "+Air_str
-                    self.Air_SpinBox.setProperty("value", float(Air_str))
+                    self.Air_SpinBox.setProperty("value", eval(Air_str))
                 if Revolutions_str!="":
                     self.Revolutions_old_str="real_T max_rpm = "+Revolutions_str
-                    self.Revolutions_SpinBox.setProperty("value", float(Revolutions_str))
+                    self.Revolutions_SpinBox.setProperty("value", eval(Revolutions_str))
                 if Diameter_str!="":
                     self.Diameter_old_str="real_T propeller_diameter = "+Diameter_str
-                    self.Diameter_SpinBox.setProperty("value", float(Diameter_str))
+                    self.Diameter_SpinBox.setProperty("value", eval(Diameter_str))
                 if Height_str!="":
                     self.Height_old_str="real_T propeller_height = "+Height_str
-                    self.Height_SpinBox.setProperty("value",float(Height_str))
+                    self.Height_SpinBox.setProperty("value", eval(Height_str))
                 if MaxThrust_str!="":
                     self.MaxThrust_old_str="real_T max_thrust = "+MaxThrust_str
-                    self.MaxThrust_SpinBox.setProperty("value",float(MaxThrust_str))
+                    self.MaxThrust_SpinBox.setProperty("value", eval(MaxThrust_str))
                 if MaxTorque_str!="":
                     self.MaxTorque_old_str="real_T torque = "+MaxTorque_str
-                    self.MaxTorque_SpinBox.setProperty("value",float(MaxTorque_str))
+                    self.MaxTorque_SpinBox.setProperty("value", eval(MaxTorque_str))
 
     def init_Body_params(self):
         """
