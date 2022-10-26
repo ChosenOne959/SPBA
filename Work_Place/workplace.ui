@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>Work_Win</class>
+ <widget class="QWidget" name="Work_Win">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -13,45 +13,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <widget class="QPushButton" name="pushButton">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>110</y>
-     <width>93</width>
-     <height>28</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>run</string>
-   </property>
-  </widget>
-  <widget class="QTextEdit" name="textEdit">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>160</y>
-     <width>531</width>
-     <height>671</height>
-    </rect>
-   </property>
-   <property name="placeholderText">
-    <string>please start your code here!</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButton_2">
-   <property name="geometry">
-    <rect>
-     <x>110</x>
-     <y>110</y>
-     <width>93</width>
-     <height>28</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>stop</string>
-   </property>
-  </widget>
   <widget class="QCommandLinkButton" name="commandLinkButton">
    <property name="geometry">
     <rect>
@@ -124,7 +85,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QDoubleSpinBox" name="doubleSpinBox">
+       <widget class="QDoubleSpinBox" name="Thrust_SpinBox">
         <property name="decimals">
          <number>6</number>
         </property>
@@ -144,7 +105,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QDoubleSpinBox" name="doubleSpinBox_3">
+       <widget class="QDoubleSpinBox" name="Torque_SpinBox">
         <property name="decimals">
          <number>6</number>
         </property>
@@ -164,7 +125,7 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QDoubleSpinBox" name="doubleSpinBox_4">
+       <widget class="QDoubleSpinBox" name="Air_SpinBox">
         <property name="decimals">
          <number>6</number>
         </property>
@@ -184,9 +145,12 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QDoubleSpinBox" name="doubleSpinBox_5">
+       <widget class="QDoubleSpinBox" name="Revolutions_SpinBox">
         <property name="decimals">
          <number>6</number>
+        </property>
+        <property name="maximum">
+         <double>6500.000000000000000</double>
         </property>
         <property name="value">
          <double>1.225000000000000</double>
@@ -204,7 +168,7 @@
        </widget>
       </item>
       <item row="4" column="1">
-       <widget class="QDoubleSpinBox" name="doubleSpinBox_6">
+       <widget class="QDoubleSpinBox" name="Diameter_SpinBox">
         <property name="decimals">
          <number>6</number>
         </property>
@@ -224,7 +188,7 @@
        </widget>
       </item>
       <item row="5" column="1">
-       <widget class="QDoubleSpinBox" name="doubleSpinBox_7">
+       <widget class="QDoubleSpinBox" name="Height_SpinBox">
         <property name="decimals">
          <number>6</number>
         </property>
@@ -244,7 +208,7 @@
        </widget>
       </item>
       <item row="6" column="1">
-       <widget class="QDoubleSpinBox" name="doubleSpinBox_8">
+       <widget class="QDoubleSpinBox" name="MaxThrust_SpinBox">
         <property name="decimals">
          <number>6</number>
         </property>
@@ -264,7 +228,7 @@
        </widget>
       </item>
       <item row="7" column="1">
-       <widget class="QDoubleSpinBox" name="doubleSpinBox_9">
+       <widget class="QDoubleSpinBox" name="MaxTorque_SpinBox">
         <property name="decimals">
          <number>6</number>
         </property>
@@ -286,6 +250,58 @@
      <string>kinematic</string>
     </attribute>
    </widget>
+  </widget>
+  <widget class="QWidget" name="verticalLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>80</y>
+     <width>481</width>
+     <height>661</height>
+    </rect>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QTextEdit" name="textEdit">
+      <property name="placeholderText">
+       <string>please start your code here!</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="pushButton">
+      <property name="text">
+       <string>run</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="pushButton_3">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>display</string>
+      </property>
+      <property name="autoRepeat">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="pushButton_2">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>stop</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QTextBrowser" name="textBrowser"/>
+    </item>
+   </layout>
   </widget>
  </widget>
  <resources/>
