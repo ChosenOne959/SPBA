@@ -15,6 +15,7 @@ from Data_display.dataWindow import MyDisplayWindow
 from Realtime.realtimeWindow import MyRealtime
 from Realtime.realtime_sensor_Window import MysensorWindow
 import json
+import threading
 class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win): 
     def __init__(self,parent=None):
         super(MyworkWindow,self).__init__(parent)
@@ -40,7 +41,7 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         set_myUI : set basic signal slots
         """
         self.commandLinkButton.clicked.connect(self.close)
-        self.pushButton.clicked.connect(self.runCode)
+        self.pushButton.clicked.connect(self.running)
         self.pushButton_2.clicked.connect(self.stop_running)
         self.pushButton_3.clicked.connect(self.Show_Display_Window)
         self.Thrust_SpinBox.valueChanged.connect(lambda:self.alter("Thrust"))
@@ -103,13 +104,13 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         """
         init_Body_params : read the body params file and complete the initialization
         """
-        body=None
+        pass
     
     def init_kineatic(self):
         """
         init_kineatic : read the kineatic params file and complete the initialization
         """
-        kineatic=None
+        pass
     
     def Show_Display_Window(self):
         """
@@ -153,49 +154,55 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         self.DroneModel.setScene(self.scene)
         self.DroneModel.show()
 
+    def running(self):
+        runcode_thread = threading.Thread(target=self.runCode)
+        runcode_thread.start()
+        try:
+            self.Show_realtime_Window()
+        except Exception as e:
+            self.textBrowser.append("Failed to connect to unreal project!")
+        
+
     def runCode(self):
         """
         runCode : when the "run" button is clicked,complete showing realtime window,showing the timestamp,
                     compile the code and display the compile information.
                     If the unreal project is not ready,this process will report an error.
         """
+        run_time=time.localtime()
+        run_date="<"+str(run_time.tm_year)+"/"+str(run_time.tm_mon)+"/"+str(run_time.tm_mday)+">"
+        run_clock=str(run_time.tm_hour)+":"+str(run_time.tm_min).rjust(2,'0')
+        self.textBrowser.append(run_date)
+        self.textBrowser.append(run_clock)
+        flag=0
+        code=self.textEdit.toPlainText()
+        file_path="codefile.py "
+        with open(file_path,'w+') as codefile:
+            codefile.write(code)
         try:
-            self.Show_realtime_Window()
-            run_time=time.localtime()
-            run_date="<"+str(run_time.tm_year)+"/"+str(run_time.tm_mon)+"/"+str(run_time.tm_mday)+">"
-            run_clock=str(run_time.tm_hour)+":"+str(run_time.tm_min).rjust(2,'0')
-            self.textBrowser.append(run_date)
-            self.textBrowser.append(run_clock)
-            flag=0
-            code=self.textEdit.toPlainText()
-            file_path="codefile.py "
-            with open(file_path,'w+') as codefile:
-                codefile.write(code)
-            try:
-                subprocess.check_call("python codefile.py 2>error.txt ",shell=True)
-                '''
-                in order to catch the compile information ,need to control the child thread and wait it 
-                '''
-
-            except Exception as e:
-                flag=1
-                with open("error.txt",'r') as mes:
-                    '''
-                    when the error appears,the error information will be writen into the error file and show its contain on the textBrower
-                    '''
-                    for i in mes:
-                        self.textBrowser.append(i) 
-            if flag==1:
-                flag=0
-            else:
-                self.textBrowser.append("compiled successfully!!")
-                #self.pushButton_3.setEnabled(True)
-                self.pushButton_2.setEnabled(True)
-
-            os.remove("error.txt")
-            os.remove("codefile.py")
+            subprocess.check_call("python codefile.py 2>error.txt ",shell=True)
+            '''
+            in order to catch the compile information ,need to control the child thread and wait it 
+            '''
         except Exception as e:
-            self.textBrowser.append("Failed to connect to unreal project!")
+            flag=1
+            with open("error.txt",'r') as mes:
+                '''
+                when the error appears,the error information will be writen into the error file and show its contain on the textBrower
+                '''
+                for i in mes:
+                    self.textBrowser.append(i) 
+        if flag==1:
+            flag=0
+        else:
+            self.textBrowser.append("compiled successfully!!")
+            
+            #self.pushButton_3.setEnabled(True)
+            self.pushButton_2.setEnabled(True)
+
+        os.remove("error.txt")
+        os.remove("codefile.py")
+            
 
     def alter(self,name):
         """

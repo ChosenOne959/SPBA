@@ -9,7 +9,7 @@ import cv2
 import os
 class MyDisplayWindow(QtWidgets.QWidget,Ui_Display_Win): 
     """
-    MyDisplayWindow : show the recoding result when the recoding start.If user doesn't start recoding and "display" button is clicked,
+    MyDisplayWindow : show the recording result when the recording start.If user doesn't start recording and "display" button is clicked,
                       it will show the last result.What's more should be noticed is that I changed the resouce code in the airsim related to
                       recording.Therefor,there are more information I can get.We should take this into consederation later.This module is best
                       left unenabled before the "recoding" control button is produced.
