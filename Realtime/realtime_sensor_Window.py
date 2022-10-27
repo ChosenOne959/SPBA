@@ -60,6 +60,8 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
         self.data_clear()
         self.start_getSensor_data()
         
+        
+        
     def time_count(self):
 
         if len(self.time_axis)==0:

@@ -39,7 +39,6 @@ class MyMainWindow(QMainWindow,Ui_MainWindow):
         self.lineEdit.returnPressed.connect(self.comfirm_path)
         self.lineEdit.textEdited.connect(lambda:print("Editing"))
         self.actionworkplace.triggered.connect(self.show_Work_window)
-
     
     def set_path_file(self):
         """
