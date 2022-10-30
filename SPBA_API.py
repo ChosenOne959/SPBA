@@ -7,6 +7,7 @@ import time
 from scipy import linalg
 import json
 import threading
+import cv2
 
 nan = float("nan")
 
@@ -428,7 +429,8 @@ class GroundTruthEstimation(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.client = airsim.MultirotorClient()
-        self.dt = 1     # period for running GroundTruth Estimation
+        self.dt = 0.1     # period for running GroundTruth Estimation
+        self.CameraImages = []
         self.ImuData = {}
         self.BarometerData = {}
         self.MagnetometerData = {}
@@ -437,14 +439,17 @@ class GroundTruthEstimation(threading.Thread):
         self.EnvironmentState = {}
         self.RotorStates = {}
 
-    def run(self):    #把要执行的代码写到run函数里面 调用start创建线程来运行run函数
+    def run(self):    # 把要执行的代码写到run函数里面 调用start创建线程来运行run函数
         print("Starting GroundTruthEstimation")
         while True:
+            # data update
             self.update_sensor_data()
             print("Sensor Updated!")
             self.KinematicsState = self.client.simGetGroundTruthKinematics()
             self.EnvironmentState = self.client.simGetGroundTruthEnvironment()
             self.RotorStates = self.client.getRotorStates()
+            self.update_image()
+            # estimate
             self.update_estimation()
             time.sleep(self.dt)
 
@@ -453,6 +458,18 @@ class GroundTruthEstimation(threading.Thread):
         self.BarometerData = self.client.getBarometerData()
         self.MagnetometerData = self.client.getMagnetometerData()
         self.GpsData = self.client.getGpsData()
+
+    def update_image(self):
+        image_list = self.client.simGetImages([airsim.ImageRequest(0,airsim.ImageType.Scene),
+                                                      airsim.ImageRequest(1,airsim.ImageType.Scene),
+                                                      airsim.ImageRequest(2,airsim.ImageType.Scene),
+                                                      airsim.ImageRequest(3,airsim.ImageType.Scene),
+                                                      airsim.ImageRequest(4,airsim.ImageType.Scene)])
+        for i in range(len(image_list)):
+            # 将图片字节码bytes转换成一维的numpy数组到缓存中
+            img_buffer_numpy = np.frombuffer(image_list[i].image_data_uint8, dtype=np.uint8)
+            img = cv2.imdecode(img_buffer_numpy, 1)  # 从指定的内存缓存中读取一维numpy数据，并把数据转换(解码)成图像矩阵格式
+            self.CameraImages.append(img)
 
     def update_estimation(self):
         pass
@@ -467,7 +484,7 @@ class GroundTruthEstimation(threading.Thread):
 class Control:
     def __init__(self):
         self.GroundTruth = GroundTruthEstimation()
-        # self.GroundTruth.start()
+        self.GroundTruth.start()
 
         self.client = airsim.MultirotorClient()
         self.client.enableApiControl(True)  # 获取控制权
@@ -557,10 +574,17 @@ class Control:
     def custom_tracking(self, **kwargs):
         pass
 
+
 class Multirotor:
     def __init__(self):
         self.client = airsim.MultirotorClient()
-        self.flight_control = Control()
+        self.FlightControl = Control()
+        self.GroundTruth = self.FlightControl.GroundTruth
+
+    def __del__(self):
+        self.client.reset()
+        self.client.armDisarm(False)
+        self.client.enableApiControl(False)
 
     # controller gains
     def setAngleRateControllerGains(self, angle_rate_gains, vehicle_name=''):
@@ -652,10 +676,22 @@ def init():
     client.takeoffAsync().join()  # 起飞
 
 
+# list=[]
+#         for i in range(len(self.responses)):
+#                 file_name="photo_"+str(i)+".png"
+#                 list.append(file_name)
+#                 airsim.write_file(file_name,self.responses[i].image_data_uint8)
+#         for i in range(len(list)):
+#             self.showGraphic(i,list[i])
+
 if __name__ == '__main__':
     PATH = 'C:/Users/huyutong2020/Documents/AirSim/settings.json'
     settings = AirSimSettings(PATH)
     settings.reset()
-    settings.set('SimMode','Car')
-    # drone = Multirotor()
-    # drone.LQR_fly_test()
+    settings.set('SimMode','Multirotor')
+    drone = Multirotor()
+    drone.GroundTruth.update_image()
+    data = drone.GroundTruth.CameraImages[0]
+    cv2.imshow('dd', data)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()

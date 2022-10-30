@@ -6,6 +6,8 @@ import cv2
 from PyQt5.QtWidgets import QApplication,QGraphicsView,QMessageBox, QGraphicsScene, QGraphicsPixmapItem
 from PyQt5.QtGui import QPixmap,QImage
 import os
+import SPBA_API as SPBA
+
 class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
     """
     MysensorWindow : show the sensor data and world camera scene.But,there is caton problem at present.Maybe it can be solved by delayed time processing--
@@ -44,17 +46,11 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
 
     
     def init_airsim(self): 
-        self.client = airsim.MultirotorClient()
-        self.client.confirmConnection()
-        self.client.enableApiControl(True)
-        self.client.armDisarm(True)
+        self.drone = SPBA.Multirotor()
 
     def release_airsim(self):
-        self.client.reset()
-        self.client.armDisarm(False)
-        self.client.enableApiControl(False)
+        del self.drone
         self.sensor_data_interval.stop()
-        os.remove("photo.png")
 
     def time_out(self):
         self.data_clear()
@@ -120,23 +116,22 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
                                ******************************* 
 
         """ 
-        imu_data=self.client.getImuData()
-        barometer_data=self.client.getBarometerData()
-        magnetometer_data=self.client.getMagnetometerData()
-        gps_data=self.client.getGpsData()
-        response = self.client.simGetImages([airsim.ImageRequest('Mycamera', airsim.ImageType.Scene)])
-        airsim.write_file("photo" + '.png', response[0].image_data_uint8)
+        imu_data=self.drone.GroundTruth.ImuData
+        barometer_data=self.drone.GroundTruth.BarometerData
+        magnetometer_data=self.drone.GroundTruth.MagnetometerData
+        gps_data=self.drone.GroundTruth.GpsData
+        # response = self.client.simGetImages([airsim.ImageRequest('Mycamera', airsim.ImageType.Scene)])
+        # airsim.write_file("photo" + '.png', response[0].image_data_uint8)
+        img = self.drone.GroundTruth.CameraImages[0]
         self.time_count()
         self.plot_sensor_data("imu",imu_data)
         self.plot_sensor_data("barometer",barometer_data)
         self.plot_sensor_data("gps",gps_data)
         self.plot_sensor_data("magnetometer",magnetometer_data)
-        self.showGraphic("photo.png")
+        self.showGraphic(img)
 
     
-    def showGraphic(self,path):
-        img=cv2.imread(path)
-        img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+    def showGraphic(self,img):
         x=img.shape[1]
         y=img.shape[0]
         ratio=float(y/x)
