@@ -40,13 +40,9 @@ class MyRealtime(QtWidgets.QWidget,Ui_Realtime):
     
     def Time_Out(self):
         self.start_takeImage()
-        for i in range(len(self.responses)):
-            os.remove("photo_"+str(i)+".png")
   
     
     def showGraphic(self,name,img):
-        # img=cv2.imread(filename)
-        # img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
         x=img.shape[1]
         y=img.shape[0]
         ratio=float(y/x)

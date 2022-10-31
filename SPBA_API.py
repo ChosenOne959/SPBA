@@ -77,8 +77,6 @@ class AirSimSettings:
         else:
             print('输入非列表/字典')
 
-
-
     def set_wind(self, x=0, y=0, z=0):
         """
         This setting specifies the wind speed in World frame, in NED direction.
@@ -166,7 +164,7 @@ class AirSimSettings:
         pass
 
     def set_recording(self, folder="", record_interval=0.05,
-                      cameras=[{"CameraName": "0", "ImageType": 0, "PixelsAsFloat": False,  "VehicleName": "", "Compress": True}],
+                      recording_cameras=[{"CameraName": "0", "ImageType": 0, "PixelsAsFloat": False,  "VehicleName": "", "Compress": True}],
                       record_on_move=False, enabled=False):
         """
         The recording feature allows you to record data such as position, orientation, velocity along with the captured image at specified intervals.
@@ -179,15 +177,22 @@ class AirSimSettings:
         :param folder: Where to store your recording data
         :param enabled: Whether Recording should start from the beginning itself,
         setting to true will start recording automatically when the simulation starts. By default, it's set to false
-        :param cameras: (input cameras object) By default scene image from camera 0 is recorded as compressed png format.
+        :param recording_cameras: (input cameras object) By default scene image from camera 0 is recorded as compressed png format.
         :return:
         """
         recording = {"RecordInterval": record_interval, "RecordOnMove": record_on_move, "Folder": folder,
-                     "Enabled": enabled, "Cameras": cameras}
+                     "Enabled": enabled, "Cameras": recording_cameras}
         self.set("Recording", recording)
 
+    def set_cameras(self, cameras={}):
+        """
+        :param cameras: input cameras object
+        :return:
+        """
+        self.set("Cameras", cameras)
+
     # TODO
-    def set_vehicles(self):
+    def set_vehicles(self, vehicles):
         """
         Each simulation mode will go through the list of vehicles specified in this setting and create the ones that has "AutoCreate": true.
         Each vehicle specified in this setting has key which becomes the name of the vehicle.
@@ -236,10 +241,27 @@ class AirSimSettings:
                 }
               },
         """
-        pass
+        self.set("Vehicles", vehicles)
 
     @staticmethod
-    def camera(camera_name: str, image_type: int, vehicle_name: str, compress=True, pixels_as_float=False):
+    def vehicles_add(vehicle_name="SimpleFlight", vehicle_settings={}, vehicles={}):
+        vehicles[vehicle_name] = vehicle_settings
+        return vehicles
+
+    @staticmethod
+    def vehicle_settings(vehicle_type='SimpleFlight', default_vehicle_state='Armed', auto_create=True, pawn_path='',
+                         enable_collision_pass_through=False, enable_collisions=True, allow_api_always=True,
+                         enable_trace=False, RC={}, cameras={}, x=nan, y=nan, z=nan, pitch=nan, roll=nan, yaw=nan):
+        vehicle_settings = {"VehicleType": vehicle_type, "DefaultVehicleState": default_vehicle_state,
+                            "AutoCreate": auto_create, "PawnPath": pawn_path,
+                            "EnableCollisionPassThrough": enable_collision_pass_through,
+                            "EnableCollisions": enable_collisions, "AllowAPIAlways": allow_api_always,
+                            "EnableTrace": enable_trace, "RC": RC, "Cameras": cameras, "X": x, "Y": y, "Z": z,
+                            "Pitch": pitch, "Roll": roll, "Yaw": yaw}
+        return vehicle_settings
+
+    @staticmethod
+    def recording_camera(camera_name: str, image_type: int, vehicle_name: str, compress=True, pixels_as_float=False):
         """
         this element controls which cameras are used to capture images.
         By default scene image from camera 0 is recorded as compressed png format.
@@ -267,15 +289,27 @@ class AirSimSettings:
         return camera
 
     @staticmethod
-    def cameras(*camera):
+    def recording_cameras(*camera):
         """
-        :param camera: use camera object(you can input at most 3 camera object as params)
-        :return: cameras object
+        :param camera: use recording_camera objects(you can input at most 3 camera object as params)
+        :return: recording_cameras object
         """
         cameras_list = []
         for i in camera:
             cameras_list.append(i)
         return cameras_list
+
+    @staticmethod
+    def cameras_add(camera_name: str, camera_settings={}, cameras={}):
+        """
+        add camera to an existing cameras object, if no cameras object input, create a new one
+        :param camera_name:
+        :param camera_settings:
+        :param cameras: input existing cameras object
+        :return:
+        """
+        cameras[camera_name] = camera_settings
+        return cameras
 
     @staticmethod
     def camera_settings(x=nan, y=nan, z=nan, pitch=nan, roll=nan, yaw=nan, capture_settings=[], noise_settings=[],
@@ -292,14 +326,14 @@ class AirSimSettings:
         :param gimbal:(input noise_settings object)
         :param unreal_engine:(input unreal_engine object)
         """
-        if not capture_settings:
-            capture_settings = AirSimSettings.capture_settings()
-        if not noise_settings:
-            noise_settings = AirSimSettings.noise_settings()
-        if not gimbal:
-            gimbal = AirSimSettings.gimbal()
-        if not unreal_engine:
-            unreal_engine = AirSimSettings.unreal_engine()
+        # if not capture_settings:
+        #     capture_settings = AirSimSettings.capture_settings()
+        # if not noise_settings:
+        #     noise_settings = AirSimSettings.noise_settings()
+        # if not gimbal:
+        #     gimbal = AirSimSettings.gimbal()
+        # if not unreal_engine:
+        #     unreal_engine = AirSimSettings.unreal_engine()
 
         camera_settings = {"X": x, "Y": y, "Z": z, "Pitch": pitch, "Roll": roll, "Yaw": yaw,
                            "CaptureSettings": capture_settings, "NoiseSettings": noise_settings, "Gimbal": gimbal,
@@ -425,6 +459,7 @@ class AirSimSettings:
         }
         return unreal_engine
 
+
 class GroundTruthEstimation(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -444,7 +479,7 @@ class GroundTruthEstimation(threading.Thread):
         while True:
             # data update
             self.update_sensor_data()
-            print("Sensor Updated!")
+            print("At time ", time.time(), "Sensor Data Updated!")
             self.KinematicsState = self.client.simGetGroundTruthKinematics()
             self.EnvironmentState = self.client.simGetGroundTruthEnvironment()
             self.RotorStates = self.client.getRotorStates()
@@ -461,15 +496,23 @@ class GroundTruthEstimation(threading.Thread):
 
     def update_image(self):
         image_list = self.client.simGetImages([airsim.ImageRequest(0,airsim.ImageType.Scene),
-                                                      airsim.ImageRequest(1,airsim.ImageType.Scene),
-                                                      airsim.ImageRequest(2,airsim.ImageType.Scene),
-                                                      airsim.ImageRequest(3,airsim.ImageType.Scene),
-                                                      airsim.ImageRequest(4,airsim.ImageType.Scene)])
+                                               airsim.ImageRequest(1,airsim.ImageType.Scene),
+                                               airsim.ImageRequest(2,airsim.ImageType.Scene),
+                                               airsim.ImageRequest(3,airsim.ImageType.Scene),
+                                               airsim.ImageRequest(4,airsim.ImageType.Scene),
+                                               airsim.ImageRequest("Mycamera", airsim.ImageType.Scene)])
+        if not image_list:
+            print("no image received")
         for i in range(len(image_list)):
             # 将图片字节码bytes转换成一维的numpy数组到缓存中
             img_buffer_numpy = np.frombuffer(image_list[i].image_data_uint8, dtype=np.uint8)
             img = cv2.imdecode(img_buffer_numpy, 1)  # 从指定的内存缓存中读取一维numpy数据，并把数据转换(解码)成图像矩阵格式
-            self.CameraImages.append(img)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            if len(self.CameraImages) <= i:
+                # insert() takes too much time
+                self.CameraImages.insert(i, img)
+            else:
+                self.CameraImages[i] = img
 
     def update_estimation(self):
         pass
@@ -576,6 +619,10 @@ class Control:
 
 
 class Multirotor:
+    """
+    use this class to call all flight-related APIs
+    note that Multirotor instance should only be created once (because each instance opens a thread for GroundTruthEstimation)
+    """
     def __init__(self):
         self.client = airsim.MultirotorClient()
         self.FlightControl = Control()
@@ -662,7 +709,7 @@ class Multirotor:
         path = self.LQR_8_traj()
         self.plot(path[0])  # 画出规划路径
 
-        self.flight_control.moveOnPath_LQR(path[0], path[1], path[2])
+        self.FlightControl.moveOnPath_LQR(path[0], path[1], path[2])
 
         self.client.landAsync().join()
         self.client.armDisarm(False)  # 上锁
@@ -688,7 +735,16 @@ if __name__ == '__main__':
     PATH = 'C:/Users/huyutong2020/Documents/AirSim/settings.json'
     settings = AirSimSettings(PATH)
     settings.reset()
-    settings.set('SimMode','Multirotor')
+    capture_settings = settings.capture_settings(image_type=0, width=788, height=520, fov_degrees=90,
+                                                 auto_exposure_speed=100, auto_exposure_bias=0,
+                                                 auto_exposure_max_brightness=0.64, auto_exposure_min_brightness=0.03,
+                                                 motion_blur_amount=0, target_gamma=1.0, projection_mode="",
+                                                 ortho_width=5.12)
+    gimbal = settings.gimbal(stabilization=0)
+    camera_settings = settings.camera_settings(x=-2, y=0, z=-2, pitch=-45, roll=0, yaw=0,
+                                               capture_settings=capture_settings, gimbal=gimbal)
+    cameras = settings.cameras_add("Mycamera", camera_settings)
+    settings.set_cameras(cameras)
     drone = Multirotor()
     drone.GroundTruth.update_image()
     data = drone.GroundTruth.CameraImages[0]
