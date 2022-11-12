@@ -1,5 +1,6 @@
 from xmlrpc.client import ServerProxy
 
+# public ip of remote server
 remote_host = '202.120.37.157'
 
 class RPC_client:
@@ -15,6 +16,3 @@ class RPC_client:
     def json_load(self, filename: str):
         self.server.json_load(filename)
 
-if __name__ == '__main__':
-    server = ServerProxy("http://localhost:13333") # 初始化服务器
-    print (server.add(3,5)) # 调用函数并传参

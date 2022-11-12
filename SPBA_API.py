@@ -11,13 +11,14 @@ import threading
 import cv2
 
 nan = float("nan")
-
+remote_host = '202.120.37.157'
 
 class AirSimSettings:
-    def __init__(self):
+    def __init__(self, is_localhost=True):
+        self.is_localhost = is_localhost
         self.defaultSettings = {"SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
                                 "SettingsVersion": 1.2, "SimMode": "Multirotor"}
-        self.RPC_client = RPC_client.RPC_client()
+        self.RPC_client = RPC_client.RPC_client(is_localhost=self.is_localhost)
         self.settings = self.RPC_client.json_load("settings")
 
     def reset(self):
@@ -460,9 +461,9 @@ class AirSimSettings:
 
 
 class GroundTruthEstimation(threading.Thread):
-    def __init__(self):
+    def __init__(self, client):
         threading.Thread.__init__(self)
-        self.client = airsim.MultirotorClient()
+        self.client = client
         self.dt = 0.1     # period for running GroundTruth Estimation
         self.CameraImages = []
         self.ImuData = {}
@@ -524,11 +525,11 @@ class GroundTruthEstimation(threading.Thread):
 
 
 class Control:
-    def __init__(self):
-        self.GroundTruth = GroundTruthEstimation()
+    def __init__(self, client):
+        self.GroundTruth = GroundTruthEstimation(client)
         self.GroundTruth.start()
 
-        self.client = airsim.MultirotorClient()
+        self.client = client
         self.client.enableApiControl(True)  # 获取控制权
         self.client.armDisarm(True)  # 解锁
 
@@ -622,9 +623,13 @@ class Multirotor:
     use this class to call all flight-related APIs
     note that Multirotor instance should only be created once (because each instance opens a thread for GroundTruthEstimation)
     """
-    def __init__(self):
-        self.client = airsim.MultirotorClient()
-        self.FlightControl = Control()
+    def __init__(self, is_localhost=True):
+        self.is_localhost = is_localhost
+        if(is_localhost):
+            self.client = airsim.MultirotorClient()
+        else:
+            self.client = airsim.MultirotorClient(ip=remote_host)
+        self.FlightControl = Control(self.client)
         self.GroundTruth = self.FlightControl.GroundTruth
 
     def __del__(self):
@@ -743,8 +748,7 @@ if __name__ == '__main__':
                                                capture_settings=capture_settings, gimbal=gimbal)
     cameras = settings.cameras_add("Mycamera", camera_settings)
     settings.set_cameras(cameras)
-    drone = Multirotor()
-    drone.GroundTruth.update_image()
+    drone = Multirotor(is_localhost=True)
     data = drone.GroundTruth.CameraImages[0]
     cv2.imshow('dd', data)
     cv2.waitKey(0)
