@@ -731,7 +731,6 @@ def init():
 #             self.showGraphic(i,list[i])
 
 if __name__ == '__main__':
-    PATH = 'C:/Users/huyutong2020/Documents/AirSim/settings.json'
     settings = AirSimSettings()
     settings.reset()
     capture_settings = settings.capture_settings(image_type=0, width=788, height=520, fov_degrees=90,
