@@ -1,4 +1,5 @@
 from typing import Any
+import RPC.RPC_client as RPC_client
 
 import airsim
 import numpy as np
@@ -13,17 +14,18 @@ nan = float("nan")
 
 
 class AirSimSettings:
-    def __init__(self, path):
-        self.path = path
+    def __init__(self):
         self.defaultSettings = {"SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
                                 "SettingsVersion": 1.2, "SimMode": "Multirotor"}
+        self.RPC_client = RPC_client.RPC_client()
+        self.settings = self.RPC_client.json_load("settings")
 
     def reset(self):
         """
         Set to default settings
         """
-        with open(self.path, 'w', encoding='utf8')as fp:
-            json.dump(self.defaultSettings, fp, ensure_ascii=False)
+        self.settings = self.defaultSettings
+        self.RPC_client.json_dump('settings', self.settings)
 
     def set(self, key, value):
         """
@@ -33,22 +35,19 @@ class AirSimSettings:
               "SimMode": 'Car','Multirotor','ComputerVision'
               "ViewMode": ""(default),'FlyWithMe'(drone default),'GroundObserver','Fpv','Manual',SpringArmChase'(car default),'NoDisplay'
         """
-        with open(self.path, 'r', encoding='utf8')as fp:
-            settings = json.load(fp)
-            settings[key] = value
-            settings = self.remove_empty_key(settings)
-            # print('s_settings = ', settings)
-        with open(self.path, 'w', encoding='utf8')as fp:
-            json.dump(settings, fp, ensure_ascii=False, allow_nan=True)
-            print(settings)
-            # str = json.dumps(settings, allow_nan=True)
-            # fp.write(str)
+        self.settings[key] = value
+        self.settings = self.remove_empty_key(self.settings)
+        # print('s_settings = ', self.settings)
+        self.RPC_client.json_dump('settings', self.settings)
+        # str = json.dumps(settings, allow_nan=True)
+        # fp.write(str)
 
     def print(self):
-        with open(self.path, 'r', encoding='utf8')as fp:
+        print(self.settings)
+        # with open(self.path, 'r', encoding='utf8')as fp:
             # json_file = json.load(fp)
             # print(json_file)
-            print(fp.read())
+            # print(fp.read())
 
     def remove_empty_key(self, info):
         def isinstance(a, b):
@@ -733,7 +732,7 @@ def init():
 
 if __name__ == '__main__':
     PATH = 'C:/Users/huyutong2020/Documents/AirSim/settings.json'
-    settings = AirSimSettings(PATH)
+    settings = AirSimSettings()
     settings.reset()
     capture_settings = settings.capture_settings(image_type=0, width=788, height=520, fov_degrees=90,
                                                  auto_exposure_speed=100, auto_exposure_bias=0,

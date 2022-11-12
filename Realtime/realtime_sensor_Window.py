@@ -45,8 +45,10 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
     
 
     
-    def init_airsim(self): 
+    def init_airsim(self):
+        # note that self.drone should be the only instance of SPBA.Multirotor class
         self.drone = SPBA.Multirotor()
+        self.airsim_settings_config()
 
     def release_airsim(self):
         del self.drone
@@ -74,6 +76,30 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
         self.imu_linear.clear()
         self.gps_geo.clear()
         self.magnetometer.clear()
+
+    def airsim_settings_config(self):
+        """
+        need path of settings.json
+        better input in Setting_Path window
+        still requires some work todo
+        :return:
+        """
+        PATH = 'C:/Users/huyutong2020/Documents/AirSim/settings.json'
+        settings = SPBA.AirSimSettings(PATH)
+        settings.reset()
+        capture_settings = settings.capture_settings(image_type=0, width=788, height=520, fov_degrees=90,
+                                                     auto_exposure_speed=100, auto_exposure_bias=0,
+                                                     auto_exposure_max_brightness=0.64,
+                                                     auto_exposure_min_brightness=0.03,
+                                                     motion_blur_amount=0, target_gamma=1.0, projection_mode="",
+                                                     ortho_width=5.12)
+        gimbal = settings.gimbal(stabilization=0)
+        camera_settings = settings.camera_settings(x=-2, y=0, z=-2, pitch=-45, roll=0, yaw=0,
+                                                   capture_settings=capture_settings, gimbal=gimbal)
+        cameras = settings.cameras_add("Mycamera", camera_settings)
+        vehicle_settings = settings.vehicle_settings(cameras=cameras)
+        vehicles = settings.vehicles_add("SimpleFlight", vehicle_settings)
+        settings.set_vehicles(vehicles)
 
     def start_getSensor_data(self):
         """
@@ -120,9 +146,7 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
         barometer_data=self.drone.GroundTruth.BarometerData
         magnetometer_data=self.drone.GroundTruth.MagnetometerData
         gps_data=self.drone.GroundTruth.GpsData
-        # response = self.client.simGetImages([airsim.ImageRequest('Mycamera', airsim.ImageType.Scene)])
-        # airsim.write_file("photo" + '.png', response[0].image_data_uint8)
-        img = self.drone.GroundTruth.CameraImages[0]
+        img = self.drone.GroundTruth.CameraImages[5]
         self.time_count()
         self.plot_sensor_data("imu",imu_data)
         self.plot_sensor_data("barometer",barometer_data)

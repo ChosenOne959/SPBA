@@ -1,5 +1,6 @@
 {
     "path":{
-        "Airsim":"D:/Airsim"
+        "Airsim":"D:",
+        "settings":"C:/Users/huyutong2020/Documents/AirSim/settings.json"
     }
 }
