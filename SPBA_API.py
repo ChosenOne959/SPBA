@@ -1,5 +1,6 @@
 from typing import Any
 import RPC.RPC_client as RPC_client
+import RPC.RPC_server as RPC_server
 
 import airsim
 import numpy as np
@@ -16,10 +17,16 @@ remote_host = '202.120.37.157'
 class AirSimSettings:
     def __init__(self, is_localhost=True):
         self.is_localhost = is_localhost
+        if(self.is_localhost):
+            self.server_thread = threading.Thread(target=RPC_server.start_server(), args=(self.is_localhost)).start()
         self.defaultSettings = {"SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
                                 "SettingsVersion": 1.2, "SimMode": "Multirotor"}
         self.RPC_client = RPC_client.RPC_client(is_localhost=self.is_localhost)
         self.settings = self.RPC_client.json_load("settings")
+
+    def __del__(self):
+        # better kill the thread
+        pass
 
     def reset(self):
         """
@@ -464,7 +471,7 @@ class GroundTruthEstimation(threading.Thread):
     def __init__(self, client):
         threading.Thread.__init__(self)
         self.client = client
-        self.dt = 0.1     # period for running GroundTruth Estimation
+        self.dt = 1,     # period for running GroundTruth Estimation
         self.CameraImages = []
         self.ImuData = {}
         self.BarometerData = {}
@@ -486,7 +493,7 @@ class GroundTruthEstimation(threading.Thread):
             self.update_image()
             # estimate
             self.update_estimation()
-            time.sleep(self.dt)
+            time.sleep(1)
 
     def update_sensor_data(self):
         self.ImuData = self.client.getImuData()
@@ -495,12 +502,13 @@ class GroundTruthEstimation(threading.Thread):
         self.GpsData = self.client.getGpsData()
 
     def update_image(self):
-        image_list = self.client.simGetImages([airsim.ImageRequest(0,airsim.ImageType.Scene),
-                                               airsim.ImageRequest(1,airsim.ImageType.Scene),
-                                               airsim.ImageRequest(2,airsim.ImageType.Scene),
-                                               airsim.ImageRequest(3,airsim.ImageType.Scene),
-                                               airsim.ImageRequest(4,airsim.ImageType.Scene),
-                                               airsim.ImageRequest("Mycamera", airsim.ImageType.Scene)])
+        image_list = self.client.simGetImages([airsim.ImageRequest('0',airsim.ImageType.Scene),
+                                               airsim.ImageRequest('1',airsim.ImageType.Scene),
+                                               airsim.ImageRequest('2',airsim.ImageType.Scene),
+                                               airsim.ImageRequest('3',airsim.ImageType.Scene),
+                                               airsim.ImageRequest('4',airsim.ImageType.Scene),
+                                               airsim.ImageRequest("Mycamera",airsim.ImageType.Scene)
+                                               ])
         if not image_list:
             print("no image received")
         for i in range(len(image_list)):
@@ -526,12 +534,12 @@ class GroundTruthEstimation(threading.Thread):
 
 class Control:
     def __init__(self, client):
-        self.GroundTruth = GroundTruthEstimation(client)
-        self.GroundTruth.start()
-
         self.client = client
         self.client.enableApiControl(True)  # 获取控制权
         self.client.armDisarm(True)  # 解锁
+
+        self.GroundTruth = GroundTruthEstimation(self.client)
+        self.GroundTruth.start()
 
     # some of the APIs here are actually airsim APIs defined in client.py
 
@@ -736,7 +744,7 @@ def init():
 #             self.showGraphic(i,list[i])
 
 if __name__ == '__main__':
-    settings = AirSimSettings()
+    settings = AirSimSettings(is_localhost=True)
     settings.reset()
     capture_settings = settings.capture_settings(image_type=0, width=788, height=520, fov_degrees=90,
                                                  auto_exposure_speed=100, auto_exposure_bias=0,
@@ -747,9 +755,23 @@ if __name__ == '__main__':
     camera_settings = settings.camera_settings(x=-2, y=0, z=-2, pitch=-45, roll=0, yaw=0,
                                                capture_settings=capture_settings, gimbal=gimbal)
     cameras = settings.cameras_add("Mycamera", camera_settings)
-    settings.set_cameras(cameras)
+    vehicle_settings = settings.vehicle_settings(cameras=cameras)
+    vehicles = settings.vehicles_add(vehicle_settings=vehicle_settings)
+    settings.set_vehicles(vehicles)
+    # settings.set_cameras(cameras)
     drone = Multirotor(is_localhost=True)
-    data = drone.GroundTruth.CameraImages[0]
-    cv2.imshow('dd', data)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # while(True):
+    #     if len(drone.GroundTruth.CameraImages)!=0:
+    #         break
+    #     else:
+    #         print("no image")
+    #         time.sleep(0.5)
+    # data = drone.GroundTruth.CameraImages[0]
+    # cv2.imshow('dd', data)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+    # drone = airsim.MultirotorClient(ip=remote_host)
+    # drone.enableApiControl(True)
+    # drone.armDisarm(True)
+    # drone.takeoffAsync()

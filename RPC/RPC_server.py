@@ -106,10 +106,11 @@ def start_server(is_localhost=True):
         # need to start a tcp_mapping if use remote server
         mapping = tcp_mapping
         threading.Thread(target=mapping.tcp_mapping, args=('127.0.0.1', '41451', remote_host, '41451')).start()
+        print("server: Listening on remote port 41451")
 
 
 
 
 if __name__ == "__main__":
-    start_server(True)
+    start_server(is_localhost=True)
 
