@@ -57,6 +57,7 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
     def time_out(self):
         self.data_clear()
         self.start_getSensor_data()
+       
         
         
         

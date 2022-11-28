@@ -16,6 +16,7 @@ from Realtime.realtimeWindow import MyRealtime
 from Realtime.realtime_sensor_Window import MysensorWindow
 import json
 import threading
+from Work_Place.keyboard_controler import keyboard_control
 class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win): 
     def __init__(self,parent=None):
         super(MyworkWindow,self).__init__(parent)
@@ -27,6 +28,8 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         self.init_Rotor_params()
         self.init_Body_params()
         self.init_kineatic()
+        self.init_timer()
+        self.check_flag=0
     
     def file_path_configure(self):
         """
@@ -52,14 +55,15 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         self.Height_SpinBox.valueChanged.connect(lambda:self.alter("Height"))
         self.MaxThrust_SpinBox.valueChanged.connect(lambda:self.alter("MaxThrust"))
         self.MaxTorque_SpinBox.valueChanged.connect(lambda:self.alter("MaxTorque"))
+        self.KeyboardCtrl.clicked.connect(self.keyboard_controler)
         
     def stop_running(self):
         """
         stop_running : close the realtime window and clear the compile information when user want to stop running
         """
         self.Realtime_Sensor_Win.close()
-        self.Realtime_Graph_Win.close()
-        self.textBrowser.clear()
+        #self.Realtime_Graph_Win.close()
+        #self.textBrowser.clear()
 
     def init_Rotor_params(self):
         """
@@ -155,12 +159,16 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         self.DroneModel.show()
 
     def running(self):
+        
         runcode_thread = threading.Thread(target=self.runCode)
         runcode_thread.start()
         try:
             self.Show_realtime_Window()
+            self.check_flag=1
+            
         except Exception as e:
             self.textBrowser.append("Failed to connect to unreal project!")
+        
         
 
     def runCode(self):
@@ -176,6 +184,8 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
         self.textBrowser.append(run_clock)
         flag=0
         code=self.textEdit.toPlainText()
+        if len(code) == 0:
+            self.KeyboardCtrl.setEnabled(True)
         file_path="codefile.py "
         with open(file_path,'w+') as codefile:
             codefile.write(code)
@@ -196,9 +206,10 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
             flag=0
         else:
             self.textBrowser.append("compiled successfully!!")
-            
             #self.pushButton_3.setEnabled(True)
             self.pushButton_2.setEnabled(True)
+           
+
 
         os.remove("error.txt")
         os.remove("codefile.py")
@@ -263,6 +274,32 @@ class MyworkWindow(QtWidgets.QWidget,Ui_Work_Win):
             self.init_Body_params()
         else:
             self.init_kineatic()
+
+    def keyboard_controler(self):
+        keyboard_thread = threading.Thread(target=keyboard_control)
+        keyboard_thread.start()
+
+    def init_timer(self):
+        self.realtiemWindow_check_interval=QTimer(self)
+        self.realtiemWindow_check_interval.timeout.connect(self.time_out)
+        self.time_interval=1500
+        self.realtiemWindow_check_interval.start(self.time_interval)
+    
+    def time_out(self):
+        
+        if self.check_flag==1:
+            self.realtime_check()
+        
+    def realtime_check(self):
+            if self.Realtime_Sensor_Win.isVisible() == True:
+                pass
+            else:
+                self.pushButton_2.setEnabled(False)
+                self.KeyboardCtrl.setEnabled(False)
+                #self.realtiemWindow_check_interval.stop()
+                self.check_flag=0
+    
+
 
     def mainWindow(self):
         self.close()

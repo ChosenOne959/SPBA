@@ -276,6 +276,22 @@
      </widget>
     </item>
     <item>
+     <widget class="QPushButton" name="KeyboardCtrl">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>keyboard control</string>
+      </property>
+      <property name="checkable">
+       <bool>false</bool>
+      </property>
+      <property name="default">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QPushButton" name="pushButton_3">
       <property name="enabled">
        <bool>false</bool>

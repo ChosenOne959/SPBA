@@ -79,7 +79,6 @@ class MyRealtime(QtWidgets.QWidget,Ui_Realtime):
             if reply == QtWidgets.QMessageBox.Yes:
                 event.accept()
                 self.release_airsim()
-                
 
             else:
                 event.ignore()
