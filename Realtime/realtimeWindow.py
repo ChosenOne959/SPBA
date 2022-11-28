@@ -6,6 +6,7 @@ from PyQt5.QtGui import QPixmap,QImage
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsPixmapItem
 from PyQt5.QtCore import QTimer 
 import airsim
+from Work_Place.Ui_workplace import Ui_Work_Win
 class MyRealtime(QtWidgets.QWidget,Ui_Realtime):
     def __init__(self,parent=None):
         super(MyRealtime,self).__init__(parent)
@@ -91,7 +92,6 @@ class MyRealtime(QtWidgets.QWidget,Ui_Realtime):
             if reply == QtWidgets.QMessageBox.Yes:
                 event.accept()
                 self.release_airsim()
-                
 
             else:
                 event.ignore()
