@@ -17,7 +17,7 @@ class MyRealtime(QtWidgets.QWidget,Ui_Realtime):
         
         
     def init_airsim(self): 
-        self.client_camera = SPBA.Multirotor()
+        self.client_camera = SPBA.Multirotor(is_localhost=False)
 
     def release_airsim(self):
         del self.client_camera

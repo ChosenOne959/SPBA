@@ -112,5 +112,5 @@ def start_server(is_localhost=True):
 
 
 if __name__ == "__main__":
-    start_server(is_localhost=True)
+    start_server(is_localhost=False)
 

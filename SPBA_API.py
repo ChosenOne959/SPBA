@@ -744,7 +744,7 @@ def init():
 #             self.showGraphic(i,list[i])
 
 if __name__ == '__main__':
-    settings = AirSimSettings(is_localhost=True)
+    settings = AirSimSettings(is_localhost=False)
     settings.reset()
     capture_settings = settings.capture_settings(image_type=0, width=788, height=520, fov_degrees=90,
                                                  auto_exposure_speed=100, auto_exposure_bias=0,
@@ -759,7 +759,23 @@ if __name__ == '__main__':
     vehicles = settings.vehicles_add(vehicle_settings=vehicle_settings)
     settings.set_vehicles(vehicles)
     # settings.set_cameras(cameras)
-    drone = Multirotor(is_localhost=True)
+    print('setting finished')
+    drone = Multirotor(is_localhost=False)
+
+    # client = airsim.MultirotorClient(ip=remote_host)
+    # client.enableApiControl(True)
+    # client.armDisarm(True)
+    # client.takeoffAsync()
+    # print(client.getImuData().time_stamp)
+    # print(client.getImuData().time_stamp)
+    # client.simGetImages([airsim.ImageRequest('0', airsim.ImageType.Scene),
+    #                      airsim.ImageRequest('1', airsim.ImageType.Scene),
+    #                      airsim.ImageRequest('2', airsim.ImageType.Scene),
+    #                      airsim.ImageRequest('3', airsim.ImageType.Scene),
+    #                      airsim.ImageRequest('4', airsim.ImageType.Scene),
+    #                      airsim.ImageRequest("Mycamera", airsim.ImageType.Scene)
+    #                      ])
+
     # while(True):
     #     if len(drone.GroundTruth.CameraImages)!=0:
     #         break

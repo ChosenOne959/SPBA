@@ -47,8 +47,8 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
     
     def init_airsim(self):
         # note that self.drone should be the only instance of SPBA.Multirotor class
-        self.drone = SPBA.Multirotor()
-        self.airsim_settings_config()
+        self.drone = SPBA.Multirotor(is_localhost=False)
+        # self.airsim_settings_config()
 
     def release_airsim(self):
         del self.drone
