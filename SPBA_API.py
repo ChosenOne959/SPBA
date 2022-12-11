@@ -4,94 +4,15 @@ import math
 import time
 from scipy import linalg
 import json
-import threading
-import cv2
-import re
 
 nan = np.nan
 
 
-# used to control all the windows and transmit data between windows
-class SharedData:
-    def __init__(self):
-        self.WindowSeries = []   # a stack to store windows
-        self.is_localhost = True
-        self.configurefile_path = './configuration_file.json'
-        self.configure_data = {'path': {}}
-        self.resources = {}
-        self.param_data = self.init_param_data()
-
-    @staticmethod
-    def init_param_data():
-        param_data = {'Rotor_params': {'Thrust': {'Name': 'C_T'}, 'Torque': {'Name': 'C_P'}, 'Air': {'Name': 'air_density'}, 'Revolutions': {'Name': 'max_rpm'}}}
-        for parameter, value in param_data['Rotor_params'].items():
-            value['DataType'] = 'real_T'
-        return param_data
-
-
-    def add_resources(self, Name: str, client):
-        self.resources[Name] = client
-
-    def append_window(self, Window):
-        self.WindowSeries.append(Window)
-        return self
-
-
-
-class SettingClient:
-    def __init__(self, SharedData):
-        self.SharedData = SharedData
-        self.RPC_client = RPC_client.RPC_client(is_localhost=self.SharedData.is_localhost)
-        self.SharedData.add_resources('RPC_client', self.RPC_client)
-        self.AirSimSettings = AirSimSettings(self.SharedData)
-        self.AirSimParameters = AirSimParameters(self.SharedData)
-
-# used by client
-class AirSimParameters:
-    def __init__(self, SharedData):
-        self.SharedData = SharedData
-        self.RPC_client = self.SharedData.resources['RPC_client']
-        self.param_data = self.SharedData.param_data
-        self.get_params()
-
-    def print_params(self):
-        print(self.param_data)
-
-    def get_params(self):
-        """
-        get params from server
-        :return: params from server
-        """
-        self.param_data.update(self.RPC_client.get_params())
-
-    def set_param(self, param_kind: str, param: str, value: float):
-        """
-        set a param, note that the change won't commit until calling set_params()
-        :param param_kind:
-        :param param:
-        :param value:
-        :return:
-        """
-        self.param_data[param_kind][param]['Value'] = value
-
-    def set_params(self):
-        """
-        after params settings, call this function to update changes to the server
-        :return:
-        """
-        self.RPC_client.set_params()
-
 class AirSimSettings:
-    def __init__(self, SharedData):
+    def __init__(self, path):
+        self.path = path
         self.defaultSettings = {"SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
                                 "SettingsVersion": 1.2, "SimMode": "Multirotor"}
-        self.SharedData = SharedData
-        self.RPC_client = self.SharedData.resources['RPC_client']
-        self.settings = self.RPC_client.json_load("settings")
-
-    def __del__(self):
-        # better kill the thread
-        pass
 
     def reset(self):
         """
@@ -306,7 +227,7 @@ class AirSimSettings:
         """
         cameras_list = []
         for i in camera:
-            cameras_list.append(i)
+            cameras.append(i)
         return cameras_list
 
     @staticmethod
@@ -560,53 +481,8 @@ def LQR_fly_test():
 
 
 if __name__ == '__main__':
-    # settings = AirSimSettings(is_localhost=False)
-    # settings.reset()
-    # capture_settings = settings.capture_settings(image_type=0, width=788, height=520, fov_degrees=90,
-    #                                              auto_exposure_speed=100, auto_exposure_bias=0,
-    #                                              auto_exposure_max_brightness=0.64, auto_exposure_min_brightness=0.03,
-    #                                              motion_blur_amount=0, target_gamma=1.0, projection_mode="",
-    #                                              ortho_width=5.12)
-    # gimbal = settings.gimbal(stabilization=0)
-    # camera_settings = settings.camera_settings(x=-2, y=0, z=-2, pitch=-45, roll=0, yaw=0,
-    #                                            capture_settings=capture_settings, gimbal=gimbal)
-    # cameras = settings.cameras_add("Mycamera", camera_settings)
-    # vehicle_settings = settings.vehicle_settings(cameras=cameras)
-    # vehicles = settings.vehicles_add(vehicle_settings=vehicle_settings)
-    # settings.set_vehicles(vehicles)
-    # # settings.set_cameras(cameras)
-    # print('setting finished')
-    # drone = Multirotor(is_localhost=False)
-
-    parameters = AirSimParameters()
-    parameters.print_dict()
-
-    # client = airsim.MultirotorClient(ip=remote_host)
-    # client.enableApiControl(True)
-    # client.armDisarm(True)
-    # client.takeoffAsync()
-    # print(client.getImuData().time_stamp)
-    # print(client.getImuData().time_stamp)
-    # client.simGetImages([airsim.ImageRequest('0', airsim.ImageType.Scene),
-    #                      airsim.ImageRequest('1', airsim.ImageType.Scene),
-    #                      airsim.ImageRequest('2', airsim.ImageType.Scene),
-    #                      airsim.ImageRequest('3', airsim.ImageType.Scene),
-    #                      airsim.ImageRequest('4', airsim.ImageType.Scene),
-    #                      airsim.ImageRequest("Mycamera", airsim.ImageType.Scene)
-    #                      ])
-
-    # while(True):
-    #     if len(drone.GroundTruth.CameraImages)!=0:
-    #         break
-    #     else:
-    #         print("no image")
-    #         time.sleep(0.5)
-    # data = drone.GroundTruth.CameraImages[0]
-    # cv2.imshow('dd', data)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
-    # drone = airsim.MultirotorClient(ip=remote_host)
-    # drone.enableApiControl(True)
-    # drone.armDisarm(True)
-    # drone.takeoffAsync()
+    PATH = 'C:/Users/huyutong2020/Documents/AirSim/settings.json'
+    settings = AirSimSettings(PATH)
+    settings.reset()
+    settings.set_camera_defaults()
+    settings.print()

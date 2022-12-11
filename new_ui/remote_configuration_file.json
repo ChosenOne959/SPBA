@@ -1,9 +1,0 @@
-{
-    "path":{
-        "Airsim":"D:",
-        "settings":"C:/Users/SPBA-server/Documents/AirSim/settings.json",
-        "Rotor_params":"D:/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp",
-        "Body_params": "",
-        "Kinematics_params": ""
-    }
-}
