@@ -1,15 +1,9 @@
-class a:
-    def __init__(self, dic):
-        self.dd = dic
-        self.dd[3] = 'df'
-        dic = {'d': 'dfd'}
+import subprocess
 
-
-def c(dic):
-    dic[34] ='dd'
-
-if __name__ == "__main__":
-    f = {}
-    g = f
-    f.update({'3': 'dd'})
-    print(g)
+# 管理员身份运行Set-ExecutionPolicy RemoteSigned
+if __name__ == '__main__':
+    args = ["powershell", "../start.ps1", "$True"]
+    shell = subprocess.Popen(args, stdout=subprocess.PIPE)
+    output_bytes = shell.stdout.read()
+    output = output_bytes.decode('utf-8')
+    print(output)

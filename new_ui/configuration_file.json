@@ -4,6 +4,8 @@
         "settings":"C:/Users/huyutong2020/Documents/AirSim/settings.json",
         "AirSimSettings":"C:/Users/huyutong2020/Documents/AirSim/settings.json",
         "Rotor_params":"D:/AirSim/AirLib/include/vehicles/multirotor/RotorParams.hpp",
-        "UE4dir":"C:/Program Files (x86)/Epic Games/Launcher/Engine/Binaries/Win64/UnrealVersionSelector.exe"
+        "UE4dir":"C:/Program Files (x86)/Epic Games/Launcher/Engine/Binaries/Win64/UnrealVersionSelector.exe",
+        "UnrealProject":"E:/Unreal Project/SunTemple",
+        "UnrealProject_uproject":"E:/Unreal Project/SunTemple"
     }
 }
