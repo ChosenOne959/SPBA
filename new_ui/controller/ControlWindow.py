@@ -11,10 +11,10 @@ import time
 import pandas as pd
 import numpy as np
 import re
+from new_ui.controller.keyboard_controler import keyboard_control
 from new_ui.controller.Ui_Control_Window import Ui_ControlWindow
 import json
 import threading
-from Work_Place.keyboard_controler import keyboard_control
 from SPBA_API import Multirotor
 
 
@@ -25,9 +25,9 @@ class ControlWindow(QtWidgets.QWidget, Ui_ControlWindow):
         self.setupUi(self)
         self.set_myUI()
 
-        self.Multirotor = Multirotor(self.SharedData.is_localhost)
-        self.SharedData.add_resources('Multirotor', self.Multirotor)
-        self.init_timer()
+        self.Multirotor = Multirotor(self.SharedData)
+
+        # self.init_timer()
 
     def set_myUI(self):
         """

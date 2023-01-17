@@ -41,14 +41,14 @@ class SharedData:
         return self
 
 
-
 class SettingClient:
     def __init__(self, SharedData):
         self.SharedData = SharedData
-        self.RPC_client = RPC_client.RPC_client(is_localhost=self.SharedData.is_localhost)
-        self.SharedData.add_resources('RPC_client', self.RPC_client)
+        self.RPC_client = RPC_client.RPC_client(self.SharedData)
         self.AirSimSettings = AirSimSettings(self.SharedData)
         self.AirSimParameters = AirSimParameters(self.SharedData)
+        self.SharedData.add_resources('SettingClient', self)
+
 
 # used by client
 class AirSimParameters:
@@ -85,6 +85,7 @@ class AirSimParameters:
         """
         self.RPC_client.set_params()
 
+
 class AirSimSettings:
     def __init__(self, SharedData):
         self.defaultSettings = {"SeeDocsAt": "https://github.com/Microsoft/AirSim/blob/master/docs/settings.md",
@@ -92,6 +93,7 @@ class AirSimSettings:
         self.SharedData = SharedData
         self.RPC_client = self.SharedData.resources['RPC_client']
         self.settings = self.RPC_client.json_load("settings")
+        self.SharedData.add_resources('AirSimSettings', self)
 
     def __del__(self):
         # better kill the thread
@@ -540,7 +542,7 @@ class GroundTruthEstimation(threading.Thread):
     def __init__(self, client):
         threading.Thread.__init__(self)
         self.client = client
-        self.dt = 1,     # period for running GroundTruth Estimation
+        self.dt = 0.5,     # period for running GroundTruth Estimation
         self.CameraImages = []
         self.ImuData = {}
         self.BarometerData = {}
@@ -562,7 +564,10 @@ class GroundTruthEstimation(threading.Thread):
             self.update_image()
             # estimate
             self.update_estimation()
-            time.sleep(1)
+            time.sleep(float(self.dt[0]))
+
+    def set_sample_time(self, dt):
+        self.dt = dt
 
     def update_sensor_data(self):
         self.ImuData = self.client.getImuData()
@@ -700,14 +705,15 @@ class Multirotor:
     use this class to call all flight-related APIs
     note that Multirotor instance should only be created once (because each instance opens a thread for GroundTruthEstimation)
     """
-    def __init__(self, is_localhost=True):
-        self.is_localhost = is_localhost
-        if(is_localhost):
+    def __init__(self, SharedData):
+        self.is_localhost = SharedData.is_localhost
+        if(self.is_localhost):
             self.client = airsim.MultirotorClient()
         else:
             self.client = airsim.MultirotorClient(ip=remote_host)
         self.FlightControl = Control(self.client)
         self.GroundTruth = self.FlightControl.GroundTruth
+        SharedData.add_resources('Multirotor', self)
 
     def __del__(self):
         self.client.reset()
@@ -769,6 +775,22 @@ class Multirotor:
         return p_traj, v_traj, a_traj
 
     @staticmethod
+    def LQR_0_traj():
+        p_traj = np.zeros([2, 1600])
+        v_traj = np.zeros([2, 1600])
+        a_traj = np.zeros([2, 1600])
+
+        for i in range(1600):
+            theta = math.pi - math.pi / 400 * i
+            p_traj[0, i] = 5 * math.cos(theta) + 5
+            p_traj[1, i] = 5 * math.sin(theta)
+            v_traj[0, i] = 1.9635 * math.cos(theta - math.pi / 2)
+            v_traj[1, i] = 1.9635 * math.sin(theta - math.pi / 2)
+            a_traj[0, i] = -0.7712 * math.cos(theta)
+            a_traj[1, i] = -0.7712 * math.sin(theta)
+        return p_traj, v_traj, a_traj
+
+    @staticmethod
     def custom_traj():
         pass
 
@@ -783,18 +805,21 @@ class Multirotor:
         self.client.simPlotLineList(plot_traj, color_rgba=color_rgba, is_persistent=is_persistent)
 
     # test
-    def LQR_fly_test(self):
+    def LQR_fly(self, traj_name):
         self.client.takeoffAsync().join()  # 起飞
         self.client.moveToZAsync(-5, 1).join()  # 上升到5米高度
 
-        path = self.LQR_8_traj()
+        if traj_name == '0':
+            path = self.LQR_0_traj()
+        elif traj_name == '8':
+            path = self.LQR_8_traj()
+
         self.plot(path[0])  # 画出规划路径
 
         self.FlightControl.moveOnPath_LQR(path[0], path[1], path[2])
 
         self.client.landAsync().join()
         self.client.armDisarm(False)  # 上锁
-        self.client.enableApiControl(False)  # 释放控制权
 
 
 def init():

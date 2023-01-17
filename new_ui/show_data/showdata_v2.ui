@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>DataWindow</class>
+ <widget class="QMainWindow" name="DataWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>仿真界面</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="label_8">
@@ -76,7 +76,7 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
-         <widget class="QComboBox" name="comboBox">
+         <widget class="QComboBox" name="route_choose">
           <property name="font">
            <font>
             <family>等线</family>
@@ -101,7 +101,7 @@
        </layout>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_10">
+       <widget class="QPushButton" name="route_button">
         <property name="font">
          <font>
           <family>等线</family>
@@ -136,7 +136,7 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_3">
        <item>
-        <widget class="QPushButton" name="pushButton_6">
+        <widget class="QPushButton" name="run_button">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -153,7 +153,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_7">
+        <widget class="QPushButton" name="display_button">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -176,7 +176,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="pushButton_8">
+        <widget class="QPushButton" name="stop_button">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -198,7 +198,7 @@
       </layout>
      </item>
      <item>
-      <widget class="QTextEdit" name="textEdit">
+      <widget class="QTextEdit" name="code_edit">
        <property name="font">
         <font>
          <family>Adobe 繁黑體 Std B</family>
@@ -215,7 +215,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QTextBrowser" name="textBrowser">
+      <widget class="QTextBrowser" name="output_browse">
        <property name="font">
         <font>
          <family>Adobe 繁黑體 Std B</family>
@@ -233,7 +233,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QTabWidget" name="tabWidget_2">
+   <widget class="QTabWidget" name="TabWidget">
     <property name="geometry">
      <rect>
       <x>490</x>
@@ -253,9 +253,9 @@
      <string notr="true">background-color: rgb(249, 249, 249);</string>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>0</number>
     </property>
-    <widget class="QWidget" name="tab_2">
+    <widget class="QWidget" name="sensorData_tab">
      <attribute name="title">
       <string>Real sensorData</string>
      </attribute>
@@ -304,14 +304,14 @@
         </widget>
        </item>
        <item row="3" column="2">
-        <widget class="plotWidget" name="imu_linear">
+        <widget class="plotWidget" name="imu_linear_plot">
          <property name="styleSheet">
           <string notr="true">background-color: rgb(255, 255, 255);</string>
          </property>
         </widget>
        </item>
        <item row="1" column="2">
-        <widget class="plotWidget" name="imu_angular">
+        <widget class="plotWidget" name="imu_angular_plot">
          <property name="styleSheet">
           <string notr="true">background-color: rgb(255, 255, 255);</string>
          </property>
@@ -325,7 +325,7 @@
         </widget>
        </item>
        <item row="1" column="0" rowspan="3" colspan="2">
-        <widget class="QGraphicsView" name="Main_View">
+        <widget class="QGraphicsView" name="main_view">
          <property name="styleSheet">
           <string notr="true">background-color: rgb(255, 255, 255);</string>
          </property>
@@ -349,7 +349,7 @@
         </widget>
        </item>
        <item row="0" column="0" colspan="2">
-        <widget class="QLabel" name="Main_View_2">
+        <widget class="QLabel" name="label_6">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -419,7 +419,7 @@
       </layout>
      </widget>
     </widget>
-    <widget class="QWidget" name="tab_4">
+    <widget class="QWidget" name="view_tab">
      <attribute name="title">
       <string>Real-time simulation view</string>
      </attribute>
@@ -461,7 +461,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QGraphicsView" name="front_center">
+        <widget class="QGraphicsView" name="front_center_view">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -507,7 +507,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QGraphicsView" name="bottom_center">
+        <widget class="QGraphicsView" name="bottom_center_view">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -538,7 +538,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QGraphicsView" name="back_center">
+        <widget class="QGraphicsView" name="back_center_view">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -584,7 +584,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QGraphicsView" name="front_left">
+        <widget class="QGraphicsView" name="front_left_view">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -615,7 +615,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QGraphicsView" name="front_right">
+        <widget class="QGraphicsView" name="front_right_view">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -631,7 +631,7 @@
       </layout>
      </widget>
     </widget>
-    <widget class="QWidget" name="tab_5">
+    <widget class="QWidget" name="Multiple_tab">
      <attribute name="title">
       <string>Multiple Data Dispaly</string>
      </attribute>
@@ -671,7 +671,7 @@
         <number>4</number>
        </property>
        <item row="5" column="1">
-        <widget class="QGraphicsView" name="Segment_view_2">
+        <widget class="QGraphicsView" name="segment_view">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -685,7 +685,7 @@
         </widget>
        </item>
        <item row="3" column="1">
-        <widget class="QGraphicsView" name="Depth_view_2">
+        <widget class="QGraphicsView" name="depth_view">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -699,7 +699,7 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QGraphicsView" name="Scene_view_2">
+        <widget class="QGraphicsView" name="scene_view">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -826,7 +826,7 @@
         </widget>
        </item>
        <item row="3" column="0">
-        <widget class="plotWidget" name="Altitude_2">
+        <widget class="plotWidget" name="altitude_plot">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -857,7 +857,7 @@
         </widget>
        </item>
        <item row="1" column="0">
-        <widget class="plotWidget" name="Position_2">
+        <widget class="plotWidget" name="position_plot">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -871,7 +871,7 @@
         </widget>
        </item>
        <item row="3" column="2">
-        <widget class="plotWidget" name="acceleration_2">
+        <widget class="plotWidget" name="acceleration_plot">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -919,7 +919,7 @@
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="plotWidget" name="Latitude_2">
+        <widget class="plotWidget" name="latitude_plot">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -933,7 +933,7 @@
         </widget>
        </item>
        <item row="1" column="2">
-        <widget class="plotWidget" name="Longitutde_2">
+        <widget class="plotWidget" name="longitude_plot">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -947,7 +947,7 @@
         </widget>
        </item>
        <item row="3" column="1">
-        <widget class="plotWidget" name="Pressure_2">
+        <widget class="plotWidget" name="pressure_plot">
          <property name="font">
           <font>
            <family>Adobe 繁黑體 Std B</family>
@@ -989,6 +989,9 @@
       <width>881</width>
       <height>431</height>
      </rect>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tab_6">
      <attribute name="title">

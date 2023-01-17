@@ -3,6 +3,7 @@ import socket
 import json
 import threading
 import re
+import subprocess
 
 # private ip of remote server
 remote_host = '192.168.31.69'
@@ -134,8 +135,6 @@ class server_API:
                     f1.write(line)
         return True
 
-
-
     def get_params(self):
         print('get params!')
         with open(self.path_data['Rotor_params'], "r+") as file:
@@ -164,6 +163,18 @@ class server_API:
                 # if Revolutions_str != "":
                 #     self.Revolutions_old_str = "real_T max_rpm = " + Revolutions_str
                 #     self.Revolutions_SpinBox.setProperty("value", eval(Revolutions_str))
+
+    def start_simulator(self):
+        # 管理员身份运行Set-ExecutionPolicy RemoteSigned
+        if self.is_localhost:
+            args = ["powershell", "../start.ps1", "$True"]
+        else:
+            args = ["powershell", "../start.ps1", "$False"]
+        shell = subprocess.Popen(args, stdout=subprocess.PIPE)
+        output_bytes = shell.stdout.read()
+        output = output_bytes.decode('utf-8')
+        print(output)
+        return True
 
 
 def start_server(is_localhost=True):

@@ -16,11 +16,12 @@ import threading
 from Work_Place.keyboard_controler import keyboard_control
 from new_ui.settings.Ui_Setting_Window import Ui_SettingWindow
 from SPBA_API import SettingClient
-# from new_ui.show_data.DataWindow import DataWindow
+from PyQt5.QtWidgets import QMainWindow, QMessageBox
+from new_ui.show_data.DataWindow import DataWindow
 from new_ui.controller.ControlWindow import ControlWindow
 
 
-class SettingWindow(QtWidgets.QWidget, Ui_SettingWindow):
+class SettingWindow(QMainWindow, Ui_SettingWindow):
     def __init__(self, SharedData, parent=None):
         self.SharedData = SharedData
         super(SettingWindow, self).__init__(parent)
@@ -28,9 +29,9 @@ class SettingWindow(QtWidgets.QWidget, Ui_SettingWindow):
         self.set_myUI()
 
         self.SettingClient = SettingClient(self.SharedData)
-        self.SharedData.add_resources('SettingClient', self.SettingClient)
         self.AirSimSettings = self.SettingClient.AirSimSettings
         self.AirSimParameters = self.SettingClient.AirSimParameters
+        self.RPC_client = self.SharedData.resources['RPC_client']
         self.airsim_settings_config()
 
         self.param_data = SharedData.param_data
@@ -77,11 +78,22 @@ class SettingWindow(QtWidgets.QWidget, Ui_SettingWindow):
         vehicles = settings.vehicles_add("SimpleFlight", vehicle_settings)
         settings.set_vehicles(vehicles)
 
+    def start_simulator(self):
+        self.RPC_client.start_simulator()
 
     def forward(self):
+        self.start_simulator()
+        time.sleep(3)
+
+        # first initiate ControlWindow, then DataWindow
         self.SettingClient.AirSimParameters.set_params()
-        self.SharedData.WindowSeries.append(ControlWindow(self.SharedData))
-        self.SharedData.WindowSeries.append(DataWindow(self.SharedData))
+        self.ControlWindow = ControlWindow(self.SharedData)
+        self.SharedData.append_window(self.ControlWindow)
+        self.DataWindow = DataWindow(self.SharedData)
+        self.SharedData.append_window(self.DataWindow)
+        self.DataWindow.show()
+        self.ControlWindow.show()
+        self.close()
 
     def back(self):
         # print(self.SharedData.WindowSeries.pop())

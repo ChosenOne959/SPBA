@@ -1,5 +1,6 @@
-from Realtime.Ui_realtime_sensorData import Ui_sensorData
+from new_ui.show_data.Ui_Data_Window import Ui_DataWindow
 from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import QMainWindow, QMessageBox
 from PyQt5.QtCore import QTimer
 import airsim
 import cv2
@@ -9,7 +10,7 @@ import os
 import SPBA_API
 
 
-class DataWindow(QtWidgets.QWidget, Ui_sensorData):
+class DataWindow(QMainWindow, Ui_DataWindow):
     """
     MysensorWindow : show the sensor data and world camera scene.But,there is caton problem at present.Maybe it can be solved by delayed time processing--
                      catch hundreds of images befor show the window and upgrade the images in the cache constantly.
@@ -20,11 +21,20 @@ class DataWindow(QtWidgets.QWidget, Ui_sensorData):
         self.SharedData = SharedData
         super(DataWindow, self).__init__(parent)
         self.setupUi(self)
-
         self.Multirotor = self.SharedData.resources['Multirotor']
+        self.set_myUI()
 
-        self.init_airsim()
+        # self.init_airsim()
         self.init_timer()
+
+    def set_myUI(self):
+        self.route_button.clicked.connect(self.route)
+
+    def route(self):
+        if self.route_choose.currentText() == '0形路径':
+            self.Multirotor.LQR_fly('0')
+        elif self.route_choose.currentText() == '8形路径':
+            self.Multirotor.LQR_fly('8')
 
     def init_timer(self):
         self.sensor_data_interval = QTimer(self)
@@ -49,7 +59,7 @@ class DataWindow(QtWidgets.QWidget, Ui_sensorData):
         self.magnetometer_data_magnetic_field_body_z_val = []
 
     def release_airsim(self):
-        del self.drone
+        del self.Multirotor
         self.sensor_data_interval.stop()
 
     def time_out(self):
@@ -67,26 +77,37 @@ class DataWindow(QtWidgets.QWidget, Ui_sensorData):
         """
         data_clear : the datas have to be cleared before show them again
         """
-        self.imu_angular.clear()
+        self.imu_angular_plot.clear()
         self.barometer.clear()
-        self.imu_linear.clear()
+        self.imu_linear_plot.clear()
         self.gps_geo.clear()
+        self.magnetometer.clear()
         self.magnetometer.clear()
 
     def start_getSensor_data(self):
-        imu_data = self.drone.GroundTruth.ImuData
-        barometer_data = self.drone.GroundTruth.BarometerData
-        magnetometer_data = self.drone.GroundTruth.MagnetometerData
-        gps_data = self.drone.GroundTruth.GpsData
-        img = self.drone.GroundTruth.CameraImages[5]
+        imu_data = self.Multirotor.GroundTruth.ImuData
+        barometer_data = self.Multirotor.GroundTruth.BarometerData
+        magnetometer_data = self.Multirotor.GroundTruth.MagnetometerData
+        gps_data = self.Multirotor.GroundTruth.GpsData
+        front_center_img = main_view_img = self.Multirotor.GroundTruth.CameraImages[5]
+        front_left_img = self.Multirotor.GroundTruth.CameraImages[5]
+        front_right_img = self.Multirotor.GroundTruth.CameraImages[5]
+        bottom_center_img = self.Multirotor.GroundTruth.CameraImages[5]
+        back_center_img = self.Multirotor.GroundTruth.CameraImages[5]
         self.time_count()
         self.plot_sensor_data("imu", imu_data)
         self.plot_sensor_data("barometer", barometer_data)
         self.plot_sensor_data("gps", gps_data)
         self.plot_sensor_data("magnetometer", magnetometer_data)
-        self.showGraphic(img)
+        self.showGraphic(self.main_view, main_view_img)
 
-    def showGraphic(self, img):
+        self.showGraphic(self.front_center_view, front_center_img)
+        self.showGraphic(self.front_left_view, front_left_img)
+        self.showGraphic(self.front_right_view, front_right_img)
+        self.showGraphic(self.bottom_center_view, bottom_center_img)
+        self.showGraphic(self.back_center_view, back_center_img)
+
+    def showGraphic(self, window, img):
         x = img.shape[1]
         y = img.shape[0]
         ratio = float(y / x)
@@ -98,8 +119,8 @@ class DataWindow(QtWidgets.QWidget, Ui_sensorData):
         item = QGraphicsPixmapItem(pix)
         scene = QGraphicsScene()
         scene.addItem(item)
-        self.Main_View.setScene(scene)
-        self.Main_View.show()
+        window.setScene(scene)
+        window.show()
 
     def plot_sensor_data(self, datatype, data):
 
@@ -108,23 +129,23 @@ class DataWindow(QtWidgets.QWidget, Ui_sensorData):
             self.imu_data_angular_velocity_y_val.append(float(data.angular_velocity.y_val))
             self.imu_data_angular_velocity_z_val.append(float(data.angular_velocity.z_val))
 
-            self.imu_angular.addLegend()
-            self.imu_angular.plot(self.time_axis, self.imu_data_angular_velocity_x_val, pen="#9400D3", name="AV_X")
-            self.imu_angular.plot(self.time_axis, self.imu_data_angular_velocity_y_val, pen="#CD5555", name="AV_Y")
-            self.imu_angular.plot(self.time_axis, self.imu_data_angular_velocity_z_val, pen="#20B2AA", name="AV_Z")
-            self.imu_angular.setLabel('bottom', "time/s")
-            self.imu_angular.setLabel('left', "Angular_Velocity")
+            self.imu_angular_plot.addLegend()
+            self.imu_angular_plot.plot(self.time_axis, self.imu_data_angular_velocity_x_val, pen="#9400D3", name="AV_X")
+            self.imu_angular_plot.plot(self.time_axis, self.imu_data_angular_velocity_y_val, pen="#CD5555", name="AV_Y")
+            self.imu_angular_plot.plot(self.time_axis, self.imu_data_angular_velocity_z_val, pen="#20B2AA", name="AV_Z")
+            self.imu_angular_plot.setLabel('bottom', "time/s")
+            self.imu_angular_plot.setLabel('left', "Angular_Velocity")
 
             self.imu_data_linear_acceleration_x_val.append(float(data.linear_acceleration.x_val))
             self.imu_data_linear_acceleration_y_val.append(float(data.linear_acceleration.y_val))
             self.imu_data_linear_acceleration_z_val.append(float(data.linear_acceleration.z_val))
 
-            self.imu_linear.addLegend()
-            self.imu_linear.plot(self.time_axis, self.imu_data_angular_velocity_x_val, pen="#9400D3", name="LA_X")
-            self.imu_linear.plot(self.time_axis, self.imu_data_angular_velocity_y_val, pen="#CD5555", name="LA_Y")
-            self.imu_linear.plot(self.time_axis, self.imu_data_angular_velocity_z_val, pen="#20B2AA", name="LA_Z")
-            self.imu_linear.setLabel('bottom', "time/s")
-            self.imu_linear.setLabel('left', "Linear_Acceleration")
+            self.imu_linear_plot.addLegend()
+            self.imu_linear_plot.plot(self.time_axis, self.imu_data_angular_velocity_x_val, pen="#9400D3", name="LA_X")
+            self.imu_linear_plot.plot(self.time_axis, self.imu_data_angular_velocity_y_val, pen="#CD5555", name="LA_Y")
+            self.imu_linear_plot.plot(self.time_axis, self.imu_data_angular_velocity_z_val, pen="#20B2AA", name="LA_Z")
+            self.imu_linear_plot.setLabel('bottom', "time/s")
+            self.imu_linear_plot.setLabel('left', "Linear_Acceleration")
 
         if datatype == "barometer":
             self.barometer_data_pressure.append(float(data.pressure))

@@ -11,6 +11,7 @@ function ReadJsonFile($path){
 
 $is_localhost = $args[0]
 echo "load path_data"
+echo $config.path
 
 if($is_localhost)
 {
@@ -34,5 +35,5 @@ copy-Item -Path $AirsimPluginsDir -Destination $config.path.UnrealProjectDir -Fo
 
 # generate Visual Studio project files?
 
-# run UnrealProject
-# & $config.path.UE4dir /game config.path.UnrealProject
+echo "run UnrealProject"
+& $config.path.UE4dir /game $config.path.UnrealProject_uproject
