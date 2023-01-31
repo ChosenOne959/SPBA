@@ -15,11 +15,11 @@ echo $config.path
 
 if($is_localhost)
 {
-    $config = (ReadJsonFile -path "D:/schoolwork/PRP/SPBA/new_ui/configuration_file.json")
+    $config = (ReadJsonFile -path "configuration_file.json")
 }
 else
 {
-    $config = (ReadJsonFile -path "D:/schoolwork/PRP/SPBA/new_ui/remote_configuration_file.json")
+    $config = (ReadJsonFile -path "remote_configuration_file.json")
 
 }
 

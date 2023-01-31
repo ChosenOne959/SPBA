@@ -1,4 +1,8 @@
 from typing import Any
+
+import msgpackrpc.error
+import keyboard
+
 import RPC.RPC_client as RPC_client
 import RPC.RPC_server as RPC_server
 
@@ -24,6 +28,7 @@ class SharedData:
         self.configure_data = {'path': {}}
         self.resources = {}
         self.param_data = self.init_param_data()
+        self.lock = threading.Lock()    # 控制airsimAPI资源访问的锁
 
     @staticmethod
     def init_param_data():
@@ -269,7 +274,6 @@ class AirSimSettings:
         """
         self.set("Cameras", cameras)
 
-    # TODO
     def set_vehicles(self, vehicles):
         """
         Each simulation mode will go through the list of vehicles specified in this setting and create the ones that has "AutoCreate": true.
@@ -537,12 +541,39 @@ class AirSimSettings:
         }
         return unreal_engine
 
+    @staticmethod
+    def image_type(image_type: str):
+        if image_type == 'Scene':
+            return 0
+        elif image_type == 'DepthPlanar':
+            return 1
+        elif image_type == 'DepthPerspective':
+            return 2
+        elif image_type == 'DepthVis':
+            return 3
+        elif image_type == 'DisparityNormalized':
+            return 4
+        elif image_type == 'Segmentation':
+            return 5
+        elif image_type == 'SurfaceNormals':
+            return 6
+        elif image_type == 'Infrared':
+            return 7
+        elif image_type == 'OpticalFlow':
+            return 8
+        elif image_type == 'OpticalFlowVis':
+            return 9
+        else:
+            print("not a valid Image Type")
+            return 0
+
 
 class GroundTruthEstimation(threading.Thread):
-    def __init__(self, client):
+    def __init__(self, SharedData):
         threading.Thread.__init__(self)
-        self.client = client
-        self.dt = 0.5,     # period for running GroundTruth Estimation
+        self.SharedData = SharedData
+        self.client = SharedData.resources['client']
+        self.dt = 0.5,     # period for running GroundTruth Estimation thread
         self.CameraImages = []
         self.ImuData = {}
         self.BarometerData = {}
@@ -552,19 +583,28 @@ class GroundTruthEstimation(threading.Thread):
         self.EnvironmentState = {}
         self.RotorStates = {}
 
+    # 目前不使用创建新线程的方式以固定时间self.dt更新，而是在窗口中的QTimer中顺带调用update()更新
     def run(self):    # 把要执行的代码写到run函数里面 调用start创建线程来运行run函数
         print("Starting GroundTruthEstimation")
         while True:
-            # data update
+            self.update()
+            time.sleep(self.dt[0])
+
+    def update(self):
+        # data update
+        with self.SharedData.lock:
             self.update_sensor_data()
-            print("At time ", time.time(), "Sensor Data Updated!")
             self.KinematicsState = self.client.simGetGroundTruthKinematics()
             self.EnvironmentState = self.client.simGetGroundTruthEnvironment()
             self.RotorStates = self.client.getRotorStates()
             self.update_image()
-            # estimate
-            self.update_estimation()
-            time.sleep(float(self.dt[0]))
+        print("At time ", time.time(), "Simulator Data Updated!")
+        # estimate
+        self.update_estimation()
+        
+    def Kinematics_update(self):
+        with self.SharedData.lock:
+            self.KinematicsState = self.client.simGetGroundTruthKinematics()
 
     def set_sample_time(self, dt):
         self.dt = dt
@@ -581,7 +621,7 @@ class GroundTruthEstimation(threading.Thread):
                                                airsim.ImageRequest('2',airsim.ImageType.Scene),
                                                airsim.ImageRequest('3',airsim.ImageType.Scene),
                                                airsim.ImageRequest('4',airsim.ImageType.Scene),
-                                               airsim.ImageRequest("Mycamera",airsim.ImageType.Scene)
+                                               airsim.ImageRequest("user_defined",airsim.ImageType.Scene)
                                                ])
         if not image_list:
             print("no image received")
@@ -607,30 +647,57 @@ class GroundTruthEstimation(threading.Thread):
 
 
 class Control:
-    def __init__(self, client):
-        self.client = client
-        self.client.enableApiControl(True)  # 获取控制权
+    def __init__(self, SharedData):
+        self.SharedData = SharedData
+        self.client = SharedData.resources['client']
+        # 下面这一段是整段程序第一次调用airsimAPI，需要反复尝试，直到仿真环境开启连接成功
+        while True:
+            try:
+                self.client.enableApiControl(True)  # 获取控制权
+            except msgpackrpc.error.TransportError:
+                print("simulator hasn't started, retrying...")
+            else:
+                break
         self.client.armDisarm(True)  # 解锁
 
-        self.GroundTruth = GroundTruthEstimation(self.client)
-        self.GroundTruth.start()
+        self.GroundTruth = GroundTruthEstimation(self.SharedData)
+        # self.GroundTruth.start()
 
     # some of the APIs here are actually airsim APIs defined in client.py
+    # basic control
+    def takeoffAsync(self):
+        with self.SharedData.lock:
+            self.client.takeoffAsync()
+    
+    def landAsync(self):
+        with self.SharedData.lock:
+            self.client.landAsync()
 
     # low level
     def moveByMotorPWMsAsync(self, front_right_pwm, rear_left_pwm, front_left_pwm, rear_right_pwm, duration, vehicle_name =''):
-        return self.client.moveByMotorPWMsAsync(front_right_pwm, rear_left_pwm, front_left_pwm, rear_right_pwm, duration, vehicle_name)
+        with self.SharedData.lock:
+            return self.client.moveByMotorPWMsAsync(front_right_pwm, rear_left_pwm, front_left_pwm, rear_right_pwm, duration, vehicle_name)
 
     def moveByRollPitchYawZAsync(self, roll, pitch, yaw, z, duration, vehicle_name=''):
-        self.client.moveByRollPitchYawZAsync(roll, pitch, yaw, z, duration, vehicle_name)
+        with self.SharedData.lock:
+            self.client.moveByRollPitchYawZAsync(roll, pitch, yaw, z, duration, vehicle_name)
+            
+    # high level
+    def moveByVelocityBodyFrameAsync(self, vx, vy, vz, duration, drivetrain=airsim.DrivetrainType.MaxDegreeOfFreedom, 
+                                     yaw_mode=airsim.YawMode(), vehicle_name=''):
+        with self.SharedData.lock:
+            self.client.moveByVelocityBodyFrameAsync(vx, vy, vz, duration, duration, drivetrain, yaw_mode, vehicle_name)
+
 
     # tracking
     def moveOnPathAsync(self, path, velocity, lookahead=-1, adaptive_lookahead=1, vehicle_name=''):
         timeout_sec = 3e+38
         drivetrain = airsim.DrivetrainType.MaxDegreeOfFreedom
         yaw_mode = airsim.YawMode()
-        return self.client.moveOnPathAsync(path, velocity, timeout_sec, drivetrain, yaw_mode,
-        lookahead, adaptive_lookahead, vehicle_name)
+        # 在with语句块中有 return 时会在return发生以后再调用lock.release()
+        with self.SharedData.lock:
+            return self.client.moveOnPathAsync(path, velocity, timeout_sec, drivetrain, yaw_mode,
+            lookahead, adaptive_lookahead, vehicle_name)
 
     def moveOnPath_LQR(self, p_traj, v_traj, a_traj):
         # 解算离散LQR的反馈矩阵
@@ -641,10 +708,11 @@ class Control:
             return K
 
         # 四旋翼加速度控制
-        def move_by_acceleration_horizontal(client, ax_cmd, ay_cmd, z_cmd, duration=1):
+        def move_by_acceleration_horizontal(self, ax_cmd, ay_cmd, z_cmd, duration=1):
             # 读取自身yaw角度
-            state = client.simGetGroundTruthKinematics()
-            angles = airsim.to_eularian_angles(state.orientation)
+            self.GroundTruth.Kinematics_update()
+            state = self.GroundTruth.KinematicsState
+            angles = airsim.to_eularian_angles(state['orientation'])
             yaw_my = angles[2]
             g = 9.8  # 重力加速度
             sin_yaw = math.sin(yaw_my)
@@ -658,7 +726,7 @@ class Control:
             return
 
         # configuration
-        dt = 0.02
+        dt = 0.1
         A = np.array([[1, 0, dt, 0],
                       [0, 1, 0, dt],
                       [0, 0, 1, 0],
@@ -675,29 +743,182 @@ class Control:
 
         for t in range(1600):
             # 读取当前的位置和速度
-            UAV_state = self.client.simGetGroundTruthKinematics()
-            pos_now = np.array([[UAV_state.position.x_val], [UAV_state.position.y_val], [UAV_state.position.z_val]])
+            self.GroundTruth.Kinematics_update()
+            UAV_state = self.GroundTruth.KinematicsState
+            pos_now = np.array([[UAV_state['position']['x_val']], [UAV_state['position']['y_val']], [UAV_state['position']['z_val']]])
             vel_now = np.array(
-                [[UAV_state.linear_velocity.x_val], [UAV_state.linear_velocity.y_val],
-                 [UAV_state.linear_velocity.z_val]])
+                [[UAV_state['linear_velocity']['x_val']], [UAV_state['linear_velocity']['y_val']],
+                 [UAV_state['linear_velocity']['z_val']]])
             state_now = np.vstack((pos_now[0:2], vel_now[0:2]))
             # 目标状态
             state_des = np.vstack((p_traj[:, t:t + 1], v_traj[:, t:t + 1]))
             # LQR轨迹跟踪
             a = -np.dot(K, state_now - state_des) + a_traj[:, t:t + 1]
             # 四旋翼加速度控制
-            move_by_acceleration_horizontal(self.client, a[0, 0], a[1, 0], -5)
+            move_by_acceleration_horizontal(self, a[0, 0], a[1, 0], -5)
             # 画图
             plot_v_start = [airsim.Vector3r(pos_now[0, 0], pos_now[1, 0], pos_now[2, 0])]
             plot_v_end = pos_now + vel_now
             plot_v_end = [airsim.Vector3r(plot_v_end[0, 0], plot_v_end[1, 0], plot_v_end[2, 0])]
-            self.client.simPlotArrows(plot_v_start, plot_v_end, arrow_size=8.0, color_rgba=[0.0, 0.0, 1.0, 1.0])
-            self.client.simPlotLineList(plot_last_pos + plot_v_start, color_rgba=[1.0, 0.0, 0.0, 1.0], is_persistent=True)
+            with self.SharedData.lock:
+                self.client.simPlotArrows(plot_v_start, plot_v_end, arrow_size=8.0, color_rgba=[0.0, 0.0, 1.0, 1.0])
+                self.client.simPlotLineList(plot_last_pos + plot_v_start, color_rgba=[1.0, 0.0, 0.0, 1.0], is_persistent=True)
             plot_last_pos = plot_v_start
             time.sleep(dt)
 
     def custom_tracking(self, **kwargs):
         pass
+    
+    # keyboard_control
+    def keyboard_control(self):
+        velocity = 3
+        duration = 0.02
+        ratio = 3
+        velocity_shift = velocity * ratio
+        vehicle_name = ""
+        """
+        take off and land
+        """
+        keyboard.add_hotkey('t', lambda: self.takeoffAsync())
+        keyboard.add_hotkey('l', lambda: self.landAsync())
+        """
+        up--forward
+        down--back
+        LEFT--turn left
+        RIGHT--turn right
+        a--raise height
+        d--lower height
+        """
+        keyboard.add_hotkey('LEFT',
+                            lambda: self.moveByVelocityBodyFrameAsync(0, -velocity, 0, duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('RIGHT',
+                            lambda: self.moveByVelocityBodyFrameAsync(0, velocity, 0, duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('up', lambda: self.moveByVelocityBodyFrameAsync(velocity, 0, 0, duration=duration,
+                                                                                     vehicle_name=vehicle_name))
+        keyboard.add_hotkey('down',
+                            lambda: self.moveByVelocityBodyFrameAsync(-velocity, 0, 0, duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('a', lambda: self.moveByVelocityBodyFrameAsync(0, 0, -velocity, duration=duration,
+                                                                                    vehicle_name=vehicle_name))
+        keyboard.add_hotkey('d', lambda: self.moveByVelocityBodyFrameAsync(0, 0, velocity, duration=duration,
+                                                                                    vehicle_name=vehicle_name))
+
+        keyboard.add_hotkey('up+LEFT', lambda: self.moveByVelocityBodyFrameAsync(velocity, -velocity, 0,
+                                                                                          duration=duration,
+                                                                                          vehicle_name=vehicle_name))
+        keyboard.add_hotkey('up+RIGHT',
+                            lambda: self.moveByVelocityBodyFrameAsync(velocity, velocity, 0, duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('up+a', lambda: self.moveByVelocityBodyFrameAsync(velocity, 0, -velocity,
+                                                                                       duration=duration,
+                                                                                       vehicle_name=vehicle_name))
+        keyboard.add_hotkey('up+d',
+                            lambda: self.moveByVelocityBodyFrameAsync(velocity, 0, velocity, duration=duration,
+                                                                               vehicle_name=vehicle_name))
+
+        keyboard.add_hotkey('down+LEFT', lambda: self.moveByVelocityBodyFrameAsync(-velocity, -velocity, 0,
+                                                                                            duration=duration,
+                                                                                            vehicle_name=vehicle_name))
+        keyboard.add_hotkey('down+RIGHT', lambda: self.moveByVelocityBodyFrameAsync(-velocity, velocity, 0,
+                                                                                             duration=duration,
+                                                                                             vehicle_name=vehicle_name))
+        keyboard.add_hotkey('down+a', lambda: self.moveByVelocityBodyFrameAsync(-velocity, 0, -velocity,
+                                                                                         duration=duration,
+                                                                                         vehicle_name=vehicle_name))
+        keyboard.add_hotkey('down+d', lambda: self.moveByVelocityBodyFrameAsync(-velocity, 0, velocity,
+                                                                                         duration=duration,
+                                                                                         vehicle_name=vehicle_name))
+
+        keyboard.add_hotkey('a+RIGHT', lambda: self.moveByVelocityBodyFrameAsync(0, velocity, -velocity,
+                                                                                          duration=duration,
+                                                                                          vehicle_name=vehicle_name))
+        keyboard.add_hotkey('a+LEFT', lambda: self.moveByVelocityBodyFrameAsync(0, -velocity, -velocity,
+                                                                                         duration=duration,
+                                                                                         vehicle_name=vehicle_name))
+
+        keyboard.add_hotkey('d+RIGHT',
+                            lambda: self.moveByVelocityBodyFrameAsync(0, velocity, velocity, duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('d+LEFT', lambda: self.moveByVelocityBodyFrameAsync(0, -velocity, velocity,
+                                                                                         duration=duration,
+                                                                                         vehicle_name=vehicle_name))
+
+        """
+         left shift--increase the veloctiy
+        """
+        keyboard.add_hotkey('LEFT+left shift',
+                            lambda: self.moveByVelocityBodyFrameAsync(0, -velocity_shift, 0, duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('RIGHT+left shift',
+                            lambda: self.moveByVelocityBodyFrameAsync(0, velocity_shift, 0, duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('up+left shift',
+                            lambda: self.moveByVelocityBodyFrameAsync(velocity_shift, 0, 0, duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('down+left shift',
+                            lambda: self.moveByVelocityBodyFrameAsync(-velocity_shift, 0, 0, duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('a+left shift',
+                            lambda: self.moveByVelocityBodyFrameAsync(0, 0, -velocity_shift, duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('d+left shift',
+                            lambda: self.moveByVelocityBodyFrameAsync(0, 0, velocity_shift, duration=duration,
+                                                                               vehicle_name=vehicle_name))
+
+        keyboard.add_hotkey('left shift+up+LEFT',
+                            lambda: self.moveByVelocityBodyFrameAsync(velocity_shift, -velocity_shift, 0,
+                                                                               duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('left shift+up+RIGHT',
+                            lambda: self.moveByVelocityBodyFrameAsync(velocity_shift, velocity_shift, 0,
+                                                                               duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('left shift+up+a',
+                            lambda: self.moveByVelocityBodyFrameAsync(velocity_shift, 0, -velocity_shift,
+                                                                               duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('left shift+up+d',
+                            lambda: self.moveByVelocityBodyFrameAsync(velocity_shift, 0, velocity_shift,
+                                                                               duration=duration,
+                                                                               vehicle_name=vehicle_name))
+
+        keyboard.add_hotkey('left shift+down+LEFT',
+                            lambda: self.moveByVelocityBodyFrameAsync(-velocity_shift, -velocity_shift, 0,
+                                                                               duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('left shift+down+RIGHT',
+                            lambda: self.moveByVelocityBodyFrameAsync(-velocity_shift, velocity_shift, 0,
+                                                                               duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('left shift+down+a',
+                            lambda: self.moveByVelocityBodyFrameAsync(-velocity_shift, 0, -velocity_shift,
+                                                                               duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('left shift+down+d',
+                            lambda: self.moveByVelocityBodyFrameAsync(-velocity_shift, 0, velocity_shift,
+                                                                               duration=duration,
+                                                                               vehicle_name=vehicle_name))
+
+        keyboard.add_hotkey('left shift+a+RIGHT',
+                            lambda: self.moveByVelocityBodyFrameAsync(0, velocity_shift, -velocity_shift,
+                                                                               duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('left shift+a+LEFT',
+                            lambda: self.moveByVelocityBodyFrameAsync(0, -velocity_shift, -velocity_shift,
+                                                                               duration=duration,
+                                                                               vehicle_name=vehicle_name))
+
+        keyboard.add_hotkey('left shift+d+RIGHT',
+                            lambda: self.moveByVelocityBodyFrameAsync(0, velocity_shift, velocity_shift,
+                                                                               duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.add_hotkey('left shift+d+LEFT',
+                            lambda: self.moveByVelocityBodyFrameAsync(0, -velocity_shift, velocity_shift,
+                                                                               duration=duration,
+                                                                               vehicle_name=vehicle_name))
+        keyboard.wait('q')
 
 
 class Multirotor:
@@ -706,12 +927,14 @@ class Multirotor:
     note that Multirotor instance should only be created once (because each instance opens a thread for GroundTruthEstimation)
     """
     def __init__(self, SharedData):
+        self.SharedData = SharedData
         self.is_localhost = SharedData.is_localhost
         if(self.is_localhost):
             self.client = airsim.MultirotorClient()
         else:
             self.client = airsim.MultirotorClient(ip=remote_host)
-        self.FlightControl = Control(self.client)
+        SharedData.add_resources('client', self.client)
+        self.FlightControl = Control(self.SharedData)
         self.GroundTruth = self.FlightControl.GroundTruth
         SharedData.add_resources('Multirotor', self)
 
@@ -722,16 +945,20 @@ class Multirotor:
 
     # controller gains
     def setAngleRateControllerGains(self, angle_rate_gains, vehicle_name=''):
-        self.client.setAngleRateControllerGains(angle_rate_gains, vehicle_name)
+        with self.SharedData.lock:
+            self.client.setAngleRateControllerGains(angle_rate_gains, vehicle_name)
 
     def setAngleLevelControllerGains(self, angle_level_gains, vehicle_name=''):
-        self.client.setAngleLevelControllerGains(angle_level_gains, vehicle_name)
+        with self.SharedData.lock:
+            self.client.setAngleLevelControllerGains(angle_level_gains, vehicle_name)
 
     def setVelocityControllerGains(self, velocity_gains, vehicle_name=''):
-        self.client.setVelocityControllerGains(velocity_gains, vehicle_name)
+        with self.SharedData.lock:
+            self.client.setVelocityControllerGains(velocity_gains, vehicle_name)
 
     def setPositionControllerGains(self, position_gains, vehicle_name=''):
-        self.client.setPositionControllerGains(position_gains, vehicle_name)
+        with self.SharedData.lock:
+            self.client.setPositionControllerGains(position_gains, vehicle_name)
 
     # create trajectory
     @staticmethod
@@ -802,12 +1029,14 @@ class Multirotor:
 
         for i in range(1600):
             plot_traj += [airsim.Vector3r(path[0, i], path[1, i], -5)]
-        self.client.simPlotLineList(plot_traj, color_rgba=color_rgba, is_persistent=is_persistent)
+        with self.SharedData.lock:
+            self.client.simPlotLineList(plot_traj, color_rgba=color_rgba, is_persistent=is_persistent)
 
     # test
     def LQR_fly(self, traj_name):
-        self.client.takeoffAsync().join()  # 起飞
-        self.client.moveToZAsync(-5, 1).join()  # 上升到5米高度
+        with self.SharedData.lock:
+            self.client.takeoffAsync().join()  # 起飞
+            self.client.moveToZAsync(-5, 1).join()  # 上升到5米高度
 
         if traj_name == '0':
             path = self.LQR_0_traj()
@@ -818,15 +1047,16 @@ class Multirotor:
 
         self.FlightControl.moveOnPath_LQR(path[0], path[1], path[2])
 
-        self.client.landAsync().join()
-        self.client.armDisarm(False)  # 上锁
+        with self.SharedData.lock:
+            self.client.landAsync().join()
+            self.client.armDisarm(False)  # 上锁
 
 
-def init():
-    client = airsim.MultirotorClient()  # connect to the AirSim simulator
-    client.enableApiControl(True)  # 获取控制权
-    client.armDisarm(True)  # 解锁
-    client.takeoffAsync().join()  # 起飞
+# def init():
+#     client = airsim.MultirotorClient()  # connect to the AirSim simulator
+#     client.enableApiControl(True)  # 获取控制权
+#     client.armDisarm(True)  # 解锁
+#     client.takeoffAsync().join()  # 起飞
 
 
 # list=[]

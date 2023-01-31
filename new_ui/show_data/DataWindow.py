@@ -8,6 +8,11 @@ from PyQt5.QtWidgets import QApplication, QGraphicsView, QMessageBox, QGraphicsS
 from PyQt5.QtGui import QPixmap, QImage
 import os
 import SPBA_API
+import threading
+from SPBA_API import Multirotor
+from new_ui.controller.keyboard_controler import keyboard_control
+
+
 
 
 class DataWindow(QMainWindow, Ui_DataWindow):
@@ -21,7 +26,7 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         self.SharedData = SharedData
         super(DataWindow, self).__init__(parent)
         self.setupUi(self)
-        self.Multirotor = self.SharedData.resources['Multirotor']
+        self.Multirotor = Multirotor(self.SharedData)
         self.set_myUI()
 
         # self.init_airsim()
@@ -29,6 +34,11 @@ class DataWindow(QMainWindow, Ui_DataWindow):
 
     def set_myUI(self):
         self.route_button.clicked.connect(self.route)
+        self.KeyboardCtrl_start.clicked.connect(self.keyboard_controler)
+
+    def keyboard_controler(self):
+        keyboard_thread = threading.Thread(target=self.Multirotor.FlightControl.keyboard_control)
+        keyboard_thread.start()
 
     def route(self):
         if self.route_choose.currentText() == '0形路径':
@@ -42,6 +52,10 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         self.time_interval = 40
         self.sensor_data_interval.start(self.time_interval)
         self.time_axis = []
+        self.imu_data_orientation_x_val = []
+        self.imu_data_orientation_y_val = []
+        self.imu_data_orientation_z_val = []
+        self.imu_data_orientation_w_val = []
         self.imu_data_angular_velocity_x_val = []
         self.imu_data_angular_velocity_y_val = []
         self.imu_data_angular_velocity_z_val = []
@@ -54,17 +68,44 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         self.gps_data_geo_latitude = []
         self.gps_data_geo_longitude = []
         self.gps_data_geo_altitude = []
+        self.gps_data_velocity_x_val = []
+        self.gps_data_velocity_y_val = []
+        self.gps_data_velocity_z_val = []
         self.magnetometer_data_magnetic_field_body_x_val = []
         self.magnetometer_data_magnetic_field_body_y_val = []
         self.magnetometer_data_magnetic_field_body_z_val = []
+        self.environment_data_pressure = []
+        self.environment_data_air_density = []
+        self.environment_gravity_x_val = []
+        self.environment_gravity_y_val = []
+        self.environment_gravity_z_val = []
+        self.environment_data_temperature = []
+        self.kinematics_position_x_val = []
+        self.kinematics_position_y_val = []
+        self.kinematics_position_z_val = []
+        self.kinematics_orientation_x_val = []
+        self.kinematics_orientation_y_val = []
+        self.kinematics_orientation_z_val = []
+        self.kinematics_linear_velocity_x_val = []
+        self.kinematics_linear_velocity_y_val = []
+        self.kinematics_linear_velocity_z_val = []
+        self.kinematics_linear_acceleration_x_val = []
+        self.kinematics_linear_acceleration_y_val = []
+        self.kinematics_linear_acceleration_z_val = []
+        self.kinematics_angular_velocity_x_val = []
+        self.kinematics_angular_velocity_y_val = []
+        self.kinematics_angular_velocity_z_val = []
+        self.kinematics_angular_acceleration_x_val = []
+        self.kinematics_angular_acceleration_y_val = []
+        self.kinematics_angular_acceleration_z_val = []
 
     def release_airsim(self):
         del self.Multirotor
         self.sensor_data_interval.stop()
 
     def time_out(self):
-        self.data_clear()
-        self.start_getSensor_data()
+        self.Multirotor.GroundTruth.update()
+        self.show_all_data()
 
     def time_count(self):
 
@@ -78,30 +119,53 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         data_clear : the datas have to be cleared before show them again
         """
         self.imu_angular_plot.clear()
-        self.barometer.clear()
         self.imu_linear_plot.clear()
-        self.gps_geo.clear()
+        self.imu_orientation_plot.clear()
+        self.barometer_altitude_plot.clear()
+        self.barometer_pressure_plot.clear()
+        self.barometer_qnh_plot.clear()
+        self.gps_altitude_plot.clear()
+        self.gps_longitude_plot.clear()
+        self.gps_latitude_plot.clear()
+        self.gps_velocity_plot.clear()
         self.magnetometer.clear()
-        self.magnetometer.clear()
+        self.kinematics_position_plot.clear()
+        self.kinematics_linear_velocity_plot.clear()
+        self.kinematics_linear_acceleration_plot.clear()
+        self.kinematics_orientation_plot.clear()
+        self.kinematics_angular_velocity_plot.clear()
+        self.kinematics_angular_acceleration_plot.clear()
+        self.environment_pressure_plot.clear()
+        self.environment_air_density_plot.clear()
+        self.environment_gravity_plot.clear()
+        self.environment_temperature_plot.clear()
 
-    def start_getSensor_data(self):
+    def show_all_data(self):
+        self.data_clear()
         imu_data = self.Multirotor.GroundTruth.ImuData
         barometer_data = self.Multirotor.GroundTruth.BarometerData
         magnetometer_data = self.Multirotor.GroundTruth.MagnetometerData
         gps_data = self.Multirotor.GroundTruth.GpsData
-        front_center_img = main_view_img = self.Multirotor.GroundTruth.CameraImages[5]
-        front_left_img = self.Multirotor.GroundTruth.CameraImages[5]
-        front_right_img = self.Multirotor.GroundTruth.CameraImages[5]
-        bottom_center_img = self.Multirotor.GroundTruth.CameraImages[5]
-        back_center_img = self.Multirotor.GroundTruth.CameraImages[5]
+        kinematics_data = self.Multirotor.GroundTruth.KinematicsState
+        environment_data = self.Multirotor.GroundTruth.EnvironmentState
+        front_center_img = main_view_img = self.Multirotor.GroundTruth.CameraImages[0]
+        front_left_img = self.Multirotor.GroundTruth.CameraImages[1]
+        front_right_img = self.Multirotor.GroundTruth.CameraImages[2]
+        bottom_center_img = self.Multirotor.GroundTruth.CameraImages[3]
+        back_center_img = self.Multirotor.GroundTruth.CameraImages[4]
+        user_defined_img = self.Multirotor.GroundTruth.CameraImages[5]
         self.time_count()
-        self.plot_sensor_data("imu", imu_data)
-        self.plot_sensor_data("barometer", barometer_data)
-        self.plot_sensor_data("gps", gps_data)
-        self.plot_sensor_data("magnetometer", magnetometer_data)
-        self.showGraphic(self.main_view, main_view_img)
+        self.plot_data("imu", imu_data)
+        self.plot_data("barometer", barometer_data)
+        self.plot_data("gps", gps_data)
+        self.plot_data("magnetometer", magnetometer_data)
+        self.plot_data("kinematics", kinematics_data)
+        self.plot_data("environment", environment_data)
 
-        self.showGraphic(self.front_center_view, front_center_img)
+
+        self.showGraphic(self.user_defined_view, main_view_img)
+
+        # self.showGraphic(self.front_center_view, front_center_img)
         self.showGraphic(self.front_left_view, front_left_img)
         self.showGraphic(self.front_right_view, front_right_img)
         self.showGraphic(self.bottom_center_view, bottom_center_img)
@@ -111,8 +175,14 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         x = img.shape[1]
         y = img.shape[0]
         ratio = float(y / x)
-        newx = 780
-        newy = int(newx * ratio)
+        width = window.width()-10
+        height = window.height()-10
+        if(float(height / width) > ratio):
+            newx = width
+            newy = int(newx * ratio)
+        else:
+            newy = height
+            newx = int(newy / ratio)
         img = cv2.resize(img, (newx, newy))
         frame = QImage(img, newx, newy, QImage.Format_RGB888)
         pix = QPixmap.fromImage(frame)
@@ -122,7 +192,7 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         window.setScene(scene)
         window.show()
 
-    def plot_sensor_data(self, datatype, data):
+    def plot_data(self, datatype, data):
 
         if datatype == "imu":
             self.imu_data_angular_velocity_x_val.append(float(data.angular_velocity.x_val))
@@ -130,9 +200,9 @@ class DataWindow(QMainWindow, Ui_DataWindow):
             self.imu_data_angular_velocity_z_val.append(float(data.angular_velocity.z_val))
 
             self.imu_angular_plot.addLegend()
-            self.imu_angular_plot.plot(self.time_axis, self.imu_data_angular_velocity_x_val, pen="#9400D3", name="AV_X")
-            self.imu_angular_plot.plot(self.time_axis, self.imu_data_angular_velocity_y_val, pen="#CD5555", name="AV_Y")
-            self.imu_angular_plot.plot(self.time_axis, self.imu_data_angular_velocity_z_val, pen="#20B2AA", name="AV_Z")
+            self.imu_angular_plot.plot(self.time_axis, self.imu_data_angular_velocity_x_val, pen="#9400D3", name="X")
+            self.imu_angular_plot.plot(self.time_axis, self.imu_data_angular_velocity_y_val, pen="#CD5555", name="Y")
+            self.imu_angular_plot.plot(self.time_axis, self.imu_data_angular_velocity_z_val, pen="#20B2AA", name="Z")
             self.imu_angular_plot.setLabel('bottom', "time/s")
             self.imu_angular_plot.setLabel('left', "Angular_Velocity")
 
@@ -141,45 +211,211 @@ class DataWindow(QMainWindow, Ui_DataWindow):
             self.imu_data_linear_acceleration_z_val.append(float(data.linear_acceleration.z_val))
 
             self.imu_linear_plot.addLegend()
-            self.imu_linear_plot.plot(self.time_axis, self.imu_data_angular_velocity_x_val, pen="#9400D3", name="LA_X")
-            self.imu_linear_plot.plot(self.time_axis, self.imu_data_angular_velocity_y_val, pen="#CD5555", name="LA_Y")
-            self.imu_linear_plot.plot(self.time_axis, self.imu_data_angular_velocity_z_val, pen="#20B2AA", name="LA_Z")
+            self.imu_linear_plot.plot(self.time_axis, self.imu_data_linear_acceleration_x_val, pen="#9400D3", name="X")
+            self.imu_linear_plot.plot(self.time_axis, self.imu_data_linear_acceleration_y_val, pen="#CD5555", name="Y")
+            self.imu_linear_plot.plot(self.time_axis, self.imu_data_linear_acceleration_z_val, pen="#20B2AA", name="Z")
             self.imu_linear_plot.setLabel('bottom', "time/s")
             self.imu_linear_plot.setLabel('left', "Linear_Acceleration")
 
-        if datatype == "barometer":
+            self.imu_data_orientation_x_val.append(float(data.orientation.x_val))
+            self.imu_data_orientation_y_val.append(float(data.orientation.y_val))
+            self.imu_data_orientation_z_val.append(float(data.orientation.z_val))
+            self.imu_data_orientation_w_val.append(float(data.orientation.w_val))
+
+            self.imu_orientation_plot.addLegend()
+            self.imu_orientation_plot.plot(self.time_axis, self.imu_data_orientation_x_val, pen="#9400D3", name="X")
+            self.imu_orientation_plot.plot(self.time_axis, self.imu_data_orientation_y_val, pen="#CD5555", name="Y")
+            self.imu_orientation_plot.plot(self.time_axis, self.imu_data_orientation_z_val, pen="#20B2AA", name="Z")
+            self.imu_orientation_plot.plot(self.time_axis, self.imu_data_orientation_w_val, pen="red", name="O_W")
+            self.imu_orientation_plot.setLabel('bottom', "time/s")
+            self.imu_orientation_plot.setLabel('left', "Orientation")
+
+        elif datatype == "barometer":
             self.barometer_data_pressure.append(float(data.pressure))
             self.barometer_data_altitude.append(float(data.altitude))
             self.barometer_data_qnh.append(float(data.qnh))
-            self.barometer.addLegend()
-            self.barometer.plot(self.time_axis, self.barometer_data_pressure, pen='#9400D3', name="Pressure")
-            self.barometer.plot(self.time_axis, self.barometer_data_altitude, pen='#DCDCDC', name="Altitude")
-            self.barometer.plot(self.time_axis, self.barometer_data_qnh, pen='#FF4500', name="QNH")
-            self.barometer.setLabel('bottom', 'time/s')
-            self.barometer.setLabel('left', "Barometer")
 
-        if datatype == "gps":
+            self.barometer_pressure_plot.addLegend()
+            self.barometer_pressure_plot.plot(self.time_axis, self.barometer_data_pressure, pen='#9400D3',
+                                              name="Pressure")
+            self.barometer_pressure_plot.setLabel('bottom', 'time/s')
+            self.barometer_pressure_plot.setLabel('left', "Barometer_Pressure")
+
+            self.barometer_altitude_plot.addLegend()
+            self.barometer_altitude_plot.plot(self.time_axis, self.barometer_data_altitude, pen='#9400D3',
+                                              name="Altitude")
+            self.barometer_altitude_plot.setLabel('bottom', 'time/s')
+            self.barometer_altitude_plot.setLabel('left', "Barometer_Altitude")
+
+            self.barometer_qnh_plot.addLegend()
+            self.barometer_qnh_plot.plot(self.time_axis, self.barometer_data_qnh, pen='#9400D3',
+                                              name="Qnh")
+            self.barometer_qnh_plot.setLabel('bottom', 'time/s')
+            self.barometer_qnh_plot.setLabel('left', "Barometer_Qnh")
+
+        elif datatype == "gps":
             self.gps_data_geo_latitude.append(data.gnss.geo_point.latitude)
             self.gps_data_geo_longitude.append(data.gnss.geo_point.longitude)
             self.gps_data_geo_altitude.append(data.gnss.geo_point.altitude)
-            self.gps_geo.addLegend()
-            self.gps_geo.plot(self.time_axis, self.gps_data_geo_altitude, pen='#4169E1', name="altitude")
-            self.gps_geo.plot(self.time_axis, self.gps_data_geo_longitude, pen='#32CD32', name="longitude")
-            self.gps_geo.plot(self.time_axis, self.gps_data_geo_latitude, pen='#FF4500', name="latitude")
-            self.gps_geo.setLabel('bottom', 'time/s')
-            self.gps_geo.setLabel('left', "Gps_Geo")
+            self.gps_data_velocity_x_val.append(data.gnss.velocity.x_val)
+            self.gps_data_velocity_y_val.append(data.gnss.velocity.y_val)
+            self.gps_data_velocity_z_val.append(data.gnss.velocity.z_val)
 
-        if datatype == "magnetometer":
+            self.gps_altitude_plot.addLegend()
+            self.gps_altitude_plot.plot(self.time_axis, self.gps_data_geo_altitude, pen='#4169E1', name="altitude")
+            self.gps_altitude_plot.setLabel('bottom', 'time/s')
+            self.gps_altitude_plot.setLabel('left', "Gps_Altitude")
+
+            self.gps_longitude_plot.addLegend()
+            self.gps_longitude_plot.plot(self.time_axis, self.gps_data_geo_longitude, pen='#4169E1', name="longitude")
+            self.gps_longitude_plot.setLabel('bottom', 'time/s')
+            self.gps_longitude_plot.setLabel('left', "Gps_Longitude")
+
+            self.gps_latitude_plot.addLegend()
+            self.gps_latitude_plot.plot(self.time_axis, self.gps_data_geo_latitude, pen='#4169E1', name="latitude")
+            self.gps_latitude_plot.setLabel('bottom', 'time/s')
+            self.gps_latitude_plot.setLabel('left', "Gps_Latitude")
+
+            self.gps_velocity_plot.addLegend()
+            self.gps_velocity_plot.plot(self.time_axis, self.gps_data_velocity_x_val, pen="#9400D3", name="X")
+            self.gps_velocity_plot.plot(self.time_axis, self.gps_data_velocity_y_val, pen="#CD5555", name="Y")
+            self.gps_velocity_plot.plot(self.time_axis, self.gps_data_velocity_z_val, pen="#20B2AA", name="Z")
+            self.gps_velocity_plot.setLabel('bottom', 'time/s')
+            self.gps_velocity_plot.setLabel('left', "Gps_Velocity")
+
+        elif datatype == "magnetometer":
             self.magnetometer_data_magnetic_field_body_x_val.append(data.magnetic_field_body.x_val)
             self.magnetometer_data_magnetic_field_body_y_val.append(data.magnetic_field_body.y_val)
             self.magnetometer_data_magnetic_field_body_z_val.append(data.magnetic_field_body.z_val)
             self.magnetometer.addLegend()
             self.magnetometer.plot(self.time_axis, self.magnetometer_data_magnetic_field_body_x_val, pen='#1E90FF',
-                                   name="MFB_X")
+                                   name="X")
             self.magnetometer.plot(self.time_axis, self.magnetometer_data_magnetic_field_body_y_val, pen='#DAA520',
-                                   name="MFB_Y")
+                                   name="Y")
             self.magnetometer.plot(self.time_axis, self.magnetometer_data_magnetic_field_body_z_val, pen='#A52A2A',
-                                   name="MFB_Z")
+                                   name="Z")
+            self.magnetometer.setLabel('bottom', 'time/s')
+            self.magnetometer.setLabel('left', "Magnetic_Field_Body")
+
+        elif datatype == "kinematics":
+
+            self.kinematics_position_x_val.append(data.position.x_val)
+            self.kinematics_position_y_val.append(data.position.y_val)
+            self.kinematics_position_z_val.append(data.position.z_val)
+            self.kinematics_position_plot.addLegend()
+            self.kinematics_position_plot.plot(self.time_axis, self.kinematics_position_x_val, pen='#1E90FF',
+                                   name="X")
+            self.kinematics_position_plot.plot(self.time_axis, self.kinematics_position_y_val, pen='#DAA520',
+                                   name="Y")
+            self.kinematics_position_plot.plot(self.time_axis, self.kinematics_position_z_val, pen='#A52A2A',
+                                   name="Z")
+            self.kinematics_position_plot.setLabel('bottom', 'time/s')
+            self.kinematics_position_plot.setLabel('left', "Position")
+
+            self.kinematics_orientation_x_val.append(data.orientation.x_val)
+            self.kinematics_orientation_y_val.append(data.orientation.y_val)
+            self.kinematics_orientation_z_val.append(data.orientation.z_val)
+            self.kinematics_orientation_plot.addLegend()
+            self.kinematics_orientation_plot.plot(self.time_axis, self.kinematics_orientation_x_val, pen='#1E90FF',
+                                               name="X")
+            self.kinematics_orientation_plot.plot(self.time_axis, self.kinematics_orientation_y_val, pen='#DAA520',
+                                               name="Y")
+            self.kinematics_orientation_plot.plot(self.time_axis, self.kinematics_orientation_z_val, pen='#A52A2A',
+                                               name="Z")
+            self.kinematics_orientation_plot.setLabel('bottom', 'time/s')
+            self.kinematics_orientation_plot.setLabel('left', "Orientation")
+
+            self.kinematics_linear_velocity_x_val.append(data.linear_velocity.x_val)
+            self.kinematics_linear_velocity_y_val.append(data.linear_velocity.y_val)
+            self.kinematics_linear_velocity_z_val.append(data.linear_velocity.z_val)
+            self.kinematics_linear_velocity_plot.addLegend()
+            self.kinematics_linear_velocity_plot.plot(self.time_axis, self.kinematics_linear_velocity_x_val, pen='#1E90FF',
+                                   name="X")
+            self.kinematics_linear_velocity_plot.plot(self.time_axis, self.kinematics_linear_velocity_y_val, pen='#DAA520',
+                                   name="Y")
+            self.kinematics_linear_velocity_plot.plot(self.time_axis, self.kinematics_linear_velocity_z_val, pen='#A52A2A',
+                                   name="Z")
+            self.kinematics_linear_velocity_plot.setLabel('bottom', 'time/s')
+            self.kinematics_linear_velocity_plot.setLabel('left', "Linear_Velocity")
+
+            self.kinematics_linear_acceleration_x_val.append(data.linear_acceleration.x_val)
+            self.kinematics_linear_acceleration_y_val.append(data.linear_acceleration.y_val)
+            self.kinematics_linear_acceleration_z_val.append(data.linear_acceleration.z_val)
+            self.kinematics_linear_acceleration_plot.addLegend()
+            self.kinematics_linear_acceleration_plot.plot(self.time_axis, self.kinematics_linear_acceleration_x_val, pen='#1E90FF',
+                                   name="X")
+            self.kinematics_linear_acceleration_plot.plot(self.time_axis, self.kinematics_linear_acceleration_y_val, pen='#DAA520',
+                                   name="Y")
+            self.kinematics_linear_acceleration_plot.plot(self.time_axis, self.kinematics_linear_acceleration_z_val, pen='#A52A2A',
+                                   name="Z")
+            self.kinematics_linear_acceleration_plot.setLabel('bottom', 'time/s')
+            self.kinematics_linear_acceleration_plot.setLabel('left', "Linear_Acceleration")
+
+            self.kinematics_angular_velocity_x_val.append(data.angular_velocity.x_val)
+            self.kinematics_angular_velocity_y_val.append(data.angular_velocity.y_val)
+            self.kinematics_angular_velocity_z_val.append(data.angular_velocity.z_val)
+            self.kinematics_angular_velocity_plot.addLegend()
+            self.kinematics_angular_velocity_plot.plot(self.time_axis, self.kinematics_angular_velocity_x_val, pen='#1E90FF',
+                                   name="X")
+            self.kinematics_angular_velocity_plot.plot(self.time_axis, self.kinematics_angular_velocity_y_val, pen='#DAA520',
+                                   name="Y")
+            self.kinematics_angular_velocity_plot.plot(self.time_axis, self.kinematics_angular_velocity_z_val, pen='#A52A2A',
+                                   name="Z")
+            self.kinematics_angular_velocity_plot.setLabel('bottom', 'time/s')
+            self.kinematics_angular_velocity_plot.setLabel('left', "Angular_Velocity")
+
+            self.kinematics_angular_acceleration_x_val.append(data.angular_acceleration.x_val)
+            self.kinematics_angular_acceleration_y_val.append(data.angular_acceleration.y_val)
+            self.kinematics_angular_acceleration_z_val.append(data.angular_acceleration.z_val)
+            self.kinematics_angular_acceleration_plot.addLegend()
+            self.kinematics_angular_acceleration_plot.plot(self.time_axis, self.kinematics_angular_acceleration_x_val, pen='#1E90FF',
+                                   name="X")
+            self.kinematics_angular_acceleration_plot.plot(self.time_axis, self.kinematics_angular_acceleration_y_val, pen='#DAA520',
+                                   name="Y")
+            self.kinematics_angular_acceleration_plot.plot(self.time_axis, self.kinematics_angular_acceleration_z_val, pen='#A52A2A',
+                                   name="Z")
+            self.kinematics_angular_acceleration_plot.setLabel('bottom', 'time/s')
+            self.kinematics_angular_acceleration_plot.setLabel('left', "Angular_Acceleration")
+
+        elif datatype == "environment":
+            
+            self.environment_data_pressure.append(float(data.air_pressure))
+            self.environment_pressure_plot.addLegend()
+            self.environment_pressure_plot.plot(self.time_axis, self.environment_data_pressure, pen='#9400D3',
+                                              name="Pressure")
+            self.environment_pressure_plot.setLabel('bottom', 'time/s')
+            self.environment_pressure_plot.setLabel('left', "Environment_Pressure")
+
+            self.environment_data_air_density.append(float(data.air_density))
+            self.environment_air_density_plot.addLegend()
+            self.environment_air_density_plot.plot(self.time_axis, self.environment_data_air_density, pen='#9400D3',
+                                                name="air_density")
+            self.environment_air_density_plot.setLabel('bottom', 'time/s')
+            self.environment_air_density_plot.setLabel('left', "Environment_Air_Density")
+
+            self.environment_gravity_x_val.append(data.gravity.x_val)
+            self.environment_gravity_y_val.append(data.gravity.y_val)
+            self.environment_gravity_z_val.append(data.gravity.z_val)
+            self.environment_gravity_plot.addLegend()
+            self.environment_gravity_plot.plot(self.time_axis, self.environment_gravity_x_val, pen='#1E90FF',
+                                   name="X")
+            self.environment_gravity_plot.plot(self.time_axis, self.environment_gravity_y_val, pen='#DAA520',
+                                   name="Y")
+            self.environment_gravity_plot.plot(self.time_axis, self.environment_gravity_z_val, pen='#A52A2A',
+                                   name="Z")
+            self.environment_gravity_plot.setLabel('bottom', 'time/s')
+            self.environment_gravity_plot.setLabel('left', "Environment_Gravity")
+
+            
+            self.environment_data_temperature.append(float(data.temperature))
+            self.environment_temperature_plot.addLegend()
+            self.environment_temperature_plot.plot(self.time_axis, self.environment_data_temperature, pen='#9400D3',
+                                                name="temperature")
+            self.environment_temperature_plot.setLabel('bottom', 'time/s')
+            self.environment_temperature_plot.setLabel('left', "Environment_Temperature")
+
+
+
 
     def closeEvent(self, event):
         """

@@ -133,7 +133,7 @@ class LoginWindow(QMainWindow, Ui_login):
 
     def comfirm_path(self):
         """
-        comfirm_path : read the uses's setting contain by lineEdit component
+        comfirm_path : read the user's setting contain by lineEdit component
         """
         path = self.path_edit.text()
         path = path.replace('\\', '/')
