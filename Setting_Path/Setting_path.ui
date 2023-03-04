@@ -82,12 +82,17 @@ p, li { white-space: pre-wrap; }
     </property>
     <item>
      <property name="text">
-      <string extracomment="Unreal Path">Unreal</string>
+      <string>Airsim</string>
      </property>
     </item>
     <item>
      <property name="text">
-      <string>Airsim</string>
+      <string>Recording store</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string extracomment="Unreal Path">Unreal</string>
      </property>
     </item>
     <item>

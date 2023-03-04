@@ -6,6 +6,8 @@ import cv2
 from PyQt5.QtWidgets import QApplication,QGraphicsView,QMessageBox, QGraphicsScene, QGraphicsPixmapItem
 from PyQt5.QtGui import QPixmap,QImage
 import os
+import numpy as np
+from Work_Place import global_value
 import SPBA_API as SPBA
 
 class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
@@ -23,7 +25,7 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
     def init_timer(self):
         self.sensor_data_interval=QTimer(self)
         self.sensor_data_interval.timeout.connect(self.time_out)
-        self.time_interval=40
+        self.time_interval=20
         self.sensor_data_interval.start(self.time_interval)
         self.time_axis=[]
         self.imu_data_angular_velocity_x_val=[]
@@ -47,8 +49,10 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
     
     def init_airsim(self):
         # note that self.drone should be the only instance of SPBA.Multirotor class
-        self.drone = SPBA.Multirotor(is_localhost=False)
+        self.drone = SPBA.Multirotor(is_localhost=global_value.is_localhost)
         # self.airsim_settings_config()
+        self.recording_flag = 0;
+        
 
     def release_airsim(self):
         del self.drone
@@ -57,9 +61,17 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
     def time_out(self):
         self.data_clear()
         self.start_getSensor_data()
+        self.recording_control()
        
-        
-        
+    def recording_control(self):
+        if self.radioButton.isChecked() == True and self.recording_flag == 0:
+            self.drone.client.startRecording()
+            self.recording_flag = 1;    
+        elif self.recording_flag == 1 and self.radioButton.isChecked() == False:
+            self.drone.client.stopRecording()
+            self.recording_flag = 0;
+        else:
+            pass
         
     def time_count(self):
 
@@ -143,11 +155,25 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
                                ******************************* 
 
         """ 
-        imu_data=self.drone.GroundTruth.ImuData
-        barometer_data=self.drone.GroundTruth.BarometerData
-        magnetometer_data=self.drone.GroundTruth.MagnetometerData
-        gps_data=self.drone.GroundTruth.GpsData
-        img = self.drone.GroundTruth.CameraImages[5]
+        # imu_data=self.drone.GroundTruth.ImuData
+        # barometer_data=self.drone.GroundTruth.BarometerData
+        # magnetometer_data=self.drone.GroundTruth.MagnetometerData
+        # gps_data=self.drone.GroundTruth.GpsData
+        # img = self.drone.GroundTruth.CameraImages[5]
+        # self.time_count()
+        # self.plot_sensor_data("imu",imu_data)
+        # self.plot_sensor_data("barometer",barometer_data)
+        # self.plot_sensor_data("gps",gps_data)
+        # self.plot_sensor_data("magnetometer",magnetometer_data)
+        # self.showGraphic(img)
+        imu_data=self.drone.client.getImuData()
+        barometer_data=self.drone.client.getBarometerData()
+        magnetometer_data=self.drone.client.getMagnetometerData()
+        gps_data=self.drone.client.getGpsData()
+        response = self.drone.client.simGetImages([airsim.ImageRequest('Mycamera', airsim.ImageType.Scene)])
+        img_buffer_numpy = np.frombuffer(response[0].image_data_uint8, dtype=np.uint8)
+        img = cv2.imdecode(img_buffer_numpy, 1)  # 从指定的内存缓存中读取一维numpy数据，并把数据转换(解码)成图像矩阵格式
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         self.time_count()
         self.plot_sensor_data("imu",imu_data)
         self.plot_sensor_data("barometer",barometer_data)
@@ -156,6 +182,21 @@ class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
         self.showGraphic(img)
 
     
+    # def showGraphic(self,img):
+    #     x=img.shape[1]
+    #     y=img.shape[0]
+    #     ratio=float(y/x)
+    #     newx=780
+    #     newy=int(newx*ratio)
+    #     img=cv2.resize(img,(newx,newy))
+    #     frame=QImage(img,newx,newy,QImage.Format_RGB888)
+    #     pix=QPixmap.fromImage(frame)
+    #     item=QGraphicsPixmapItem(pix)
+    #     scene=QGraphicsScene()
+    #     scene.addItem(item)
+    #     self.Main_View.setScene(scene)
+    #     self.Main_View.show()
+
     def showGraphic(self,img):
         x=img.shape[1]
         y=img.shape[0]

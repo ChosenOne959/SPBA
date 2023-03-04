@@ -269,7 +269,17 @@
      </widget>
     </item>
     <item>
+     <widget class="QPushButton" name="Start">
+      <property name="text">
+       <string>Start</string>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QPushButton" name="pushButton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="text">
        <string>run</string>
       </property>
@@ -316,6 +326,13 @@
     </item>
     <item>
      <widget class="QTextBrowser" name="textBrowser"/>
+    </item>
+    <item>
+     <widget class="QCheckBox" name="checkBox">
+      <property name="text">
+       <string>is remote</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>

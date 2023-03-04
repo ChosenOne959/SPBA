@@ -23,11 +23,13 @@ class MyMainWindow(QMainWindow,Ui_MainWindow):
         """
         self.show()
         self.configurefile_path = './Setting_Path/configuration_file.json'
-        self.path_data={'path':{}}
-        self.UE4dir=''
-        self.Matlab=''
-        self.Airsim=''
-        self.Vs=''
+        self.path_data = {'path':{}}
+        self.UE4dir = ''
+        self.Matlab = ''
+        self.Airsim = ''
+        self.Recording = ''
+        self.Setting = ''
+        self.Vs = ''
         self.set_path_file()
         self.pushButton.clicked.connect(lambda:self.open_app("UE4"))
         self.pushButton_2.clicked.connect(lambda:self.open_app("matlab"))
@@ -62,6 +64,10 @@ class MyMainWindow(QMainWindow,Ui_MainWindow):
                 except Exception as e:
                     print("Airsim path has not been configured!")
                 try:
+                    self.Recording=self.path_data['path']['Recording store']
+                except Exception as e:
+                    print("Recording store path has not been configured!")
+                try:
                     self.Vs=self.path_data['path']['Vs']
                 except Exception as e:
                     print("Vs path has not been configured!")
@@ -75,7 +81,7 @@ class MyMainWindow(QMainWindow,Ui_MainWindow):
                     otherwise the target will be executable files
         """
         comboBox_name=self.comboBox.currentText()
-        if comboBox_name=="Airsim":
+        if comboBox_name=="Airsim" or comboBox_name == "Recording store":
             dpath=QtWidgets.QFileDialog.getExistingDirectory(self, "Open Folder", os.getcwd())
             dpath=dpath.replace('/','\\')
             self.lineEdit.setText(dpath)
@@ -124,6 +130,8 @@ class MyMainWindow(QMainWindow,Ui_MainWindow):
             self.path_data['path']['Matlab']=path
         elif name == "Airsim":
             self.path_data['path']['Airsim']=path
+        elif name == "Recording store":
+            self.path_data['path']['Recording store']=path
         else:
             self.path_data['path']['Vs']=path
         self.write_json_file()

@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import cv2
 import os
+import json
 class MyDisplayWindow(QtWidgets.QWidget,Ui_Display_Win): 
     """
     MyDisplayWindow : show the recording result when the recording start.If user doesn't start recording and "display" button is clicked,
@@ -17,8 +18,10 @@ class MyDisplayWindow(QtWidgets.QWidget,Ui_Display_Win):
     def __init__(self,parent=None):
         super(MyDisplayWindow,self).__init__(parent)
         self.setupUi(self)
-        self.timeCount=0
-        self.countSum=0
+        self.configurefile_path = './Setting_Path/configuration_file.json'
+        self.recording_path = self.file_path_configure()
+        self.timeCount = 0
+        self.countSum = 0
         self.Image_Data_Name=""
         new_file=self.Latest_File()
         self.Image_path=new_file+'/images/'  
@@ -113,9 +116,9 @@ class MyDisplayWindow(QtWidgets.QWidget,Ui_Display_Win):
         Returns:
             the latest folder path
         """
-        path="C:/Users/asus/Documents/AirSim/"   #the default path if user dosen't change it,maybe there are more work to do
+        path = self.file_path_configure()   #the default path if user dosen't change it,maybe there are more work to do
         lists=os.listdir(path)
-        lists.sort(key=lambda x:os.path.getmtime((path+"\\"+x)))
+        lists.sort(key=lambda x:os.path.getmtime((path+"/"+x)))
         if lists[-1]=="settings.json":
             file_new = os.path.join(path, lists[-2])
         else:
@@ -237,4 +240,10 @@ class MyDisplayWindow(QtWidgets.QWidget,Ui_Display_Win):
     def Acceleration_Display_Clear(self):
         self.acceleration.clear()
         
-
+    def file_path_configure(self):
+        """
+        file_path_configure : read the congiguration file and set the right path for airsim_path
+        """
+        with open(self.configurefile_path,'r') as cpfile:
+            self.cfile=json.load(cpfile)
+        return self.cfile['path']['Recording store']

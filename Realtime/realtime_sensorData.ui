@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1204</width>
-    <height>846</height>
+    <width>1192</width>
+    <height>860</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -42,6 +42,19 @@
      <widget class="plotWidget" name="barometer"/>
     </item>
    </layout>
+  </widget>
+  <widget class="QRadioButton" name="radioButton">
+   <property name="geometry">
+    <rect>
+     <x>40</x>
+     <y>0</y>
+     <width>115</width>
+     <height>19</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Recording</string>
+   </property>
   </widget>
  </widget>
  <customwidgets>

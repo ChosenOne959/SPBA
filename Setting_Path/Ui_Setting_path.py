@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\Uav_hardware_in_the_loop_simulation_platform\qtProect\Setting_path.ui'
+# Form implementation generated from reading ui file 'd:\SPBA\Setting_Path\Setting_path.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.4
 #
@@ -36,12 +36,10 @@ class Ui_MainWindow(object):
         self.comboBox.addItem("")
         self.comboBox.addItem("")
         self.comboBox.addItem("")
+        self.comboBox.addItem("")
         self.lineEdit = QtWidgets.QLineEdit(self.centralwidget)
         self.lineEdit.setGeometry(QtCore.QRect(250, 250, 341, 31))
         self.lineEdit.setObjectName("lineEdit")
-        path_format=QtCore.QRegExp(r'^[A-Z]:\\.*')
-        QValidator=QtGui.QRegExpValidator(path_format,self.lineEdit)
-        self.lineEdit.setValidator(QValidator)
         self.toolButton = QtWidgets.QToolButton(self.centralwidget)
         self.toolButton.setGeometry(QtCore.QRect(590, 250, 51, 31))
         self.toolButton.setObjectName("toolButton")
@@ -106,10 +104,11 @@ class Ui_MainWindow(object):
 "</style></head><body style=\" font-family:\'SimSun\'; font-size:9pt; font-weight:400; font-style:normal;\">\n"
 "<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:12pt; font-weight:600;\">Welcome to AU simulation platform!</span></p>\n"
 "<p align=\"center\" style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:12pt; font-weight:600;\">Please set the right path to start!</span></p></body></html>"))
-        self.comboBox.setItemText(0, _translate("MainWindow", "Unreal"))
-        self.comboBox.setItemText(1, _translate("MainWindow", "Airsim"))
-        self.comboBox.setItemText(2, _translate("MainWindow", "Matlab"))
-        self.comboBox.setItemText(3, _translate("MainWindow", "Visual Studio"))
+        self.comboBox.setItemText(0, _translate("MainWindow", "Airsim"))
+        self.comboBox.setItemText(1, _translate("MainWindow", "Recording store"))
+        self.comboBox.setItemText(2, _translate("MainWindow", "Unreal"))
+        self.comboBox.setItemText(3, _translate("MainWindow", "Matlab"))
+        self.comboBox.setItemText(4, _translate("MainWindow", "Visual Studio"))
         self.lineEdit.setPlaceholderText(_translate("MainWindow", "please input the right path here"))
         self.toolButton.setText(_translate("MainWindow", "..."))
         self.pushButton_4.setText(_translate("MainWindow", "exit"))

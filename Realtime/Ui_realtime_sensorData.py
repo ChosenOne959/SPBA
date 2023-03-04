@@ -14,7 +14,7 @@ from pyqtgraph import PlotWidget
 class Ui_sensorData(object):
     def setupUi(self, sensorData):
         sensorData.setObjectName("sensorData")
-        sensorData.resize(1204, 846)
+        sensorData.resize(1192, 860)
         self.gridLayoutWidget = QtWidgets.QWidget(sensorData)
         self.gridLayoutWidget.setGeometry(QtCore.QRect(30, 20, 1141, 811))
         self.gridLayoutWidget.setObjectName("gridLayoutWidget")
@@ -39,6 +39,9 @@ class Ui_sensorData(object):
         self.barometer = PlotWidget(self.gridLayoutWidget)
         self.barometer.setObjectName("barometer")
         self.gridLayout.addWidget(self.barometer, 3, 2, 1, 1)
+        self.radioButton = QtWidgets.QRadioButton(sensorData)
+        self.radioButton.setGeometry(QtCore.QRect(40, 0, 115, 19))
+        self.radioButton.setObjectName("radioButton")
 
         self.retranslateUi(sensorData)
         QtCore.QMetaObject.connectSlotsByName(sensorData)
@@ -46,4 +49,5 @@ class Ui_sensorData(object):
     def retranslateUi(self, sensorData):
         _translate = QtCore.QCoreApplication.translate
         sensorData.setWindowTitle(_translate("sensorData", "Form"))
+        self.radioButton.setText(_translate("sensorData", "Recording"))
 

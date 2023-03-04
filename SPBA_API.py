@@ -471,7 +471,7 @@ class GroundTruthEstimation(threading.Thread):
     def __init__(self, client):
         threading.Thread.__init__(self)
         self.client = client
-        self.dt = 1,     # period for running GroundTruth Estimation
+        self.dt = 0.1,     # period for running GroundTruth Estimation
         self.CameraImages = []
         self.ImuData = {}
         self.BarometerData = {}
@@ -483,17 +483,17 @@ class GroundTruthEstimation(threading.Thread):
 
     def run(self):    # 把要执行的代码写到run函数里面 调用start创建线程来运行run函数
         print("Starting GroundTruthEstimation")
-        while True:
-            # data update
-            self.update_sensor_data()
-            print("At time ", time.time(), "Sensor Data Updated!")
-            self.KinematicsState = self.client.simGetGroundTruthKinematics()
-            self.EnvironmentState = self.client.simGetGroundTruthEnvironment()
-            self.RotorStates = self.client.getRotorStates()
-            self.update_image()
-            # estimate
-            self.update_estimation()
-            time.sleep(1)
+        # while True:
+        #     # data update
+        #     self.update_sensor_data()
+        #     print("At time ", time.time(), "Sensor Data Updated!")
+        #     self.KinematicsState = self.client.simGetGroundTruthKinematics()
+        #     self.EnvironmentState = self.client.simGetGroundTruthEnvironment()
+        #     self.RotorStates = self.client.getRotorStates()
+        #     self.update_image()
+        #     # estimate
+        #     self.update_estimation()
+        #     time.sleep(1)
 
     def update_sensor_data(self):
         self.ImuData = self.client.getImuData()

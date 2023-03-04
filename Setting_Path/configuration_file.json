@@ -1,6 +1,7 @@
 {
     "path":{
-        "Airsim":"D:",
-        "settings":"C:/Users/huyutong2020/Documents/AirSim/settings.json"
+        "Airsim":"D:/Airsim",
+        "settings":"C:/Users/huyutong2020/Documents/AirSim/settings.json",
+        "Recording store":"C:/Users/asus/Documents/AirSim"
     }
 }
