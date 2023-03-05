@@ -70,8 +70,6 @@ class tcp_mapping:
         return
 
 
-
-
 class server_API:
     def __init__(self, is_localhost=True):
         print('server: initializing server_API')

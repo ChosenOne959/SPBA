@@ -582,6 +582,7 @@ class GroundTruthEstimation(threading.Thread):
         self.KinematicsState = {}
         self.EnvironmentState = {}
         self.RotorStates = {}
+        self.EstimationData = {}
 
     # 目前不使用创建新线程的方式以固定时间self.dt更新，而是在窗口中的QTimer中顺带调用update()更新
     def run(self):    # 把要执行的代码写到run函数里面 调用start创建线程来运行run函数
@@ -649,12 +650,19 @@ class GroundTruthEstimation(threading.Thread):
 class Control:
     def __init__(self, SharedData):
         self.SharedData = SharedData
-        self.client = SharedData.resources['client']
         # 下面这一段是整段程序第一次调用airsimAPI，需要反复尝试，直到仿真环境开启连接成功
         while True:
             try:
+                if (SharedData.is_localhost):
+                    self.client = airsim.MultirotorClient()
+                else:
+                    self.client = airsim.MultirotorClient(ip=remote_host)
+                SharedData.add_resources('client', self.client)
+
+                print("check whether simulator has started")
                 self.client.enableApiControl(True)  # 获取控制权
-            except msgpackrpc.error.TransportError:
+                print("simulator has started, ready to go!")
+            except :
                 print("simulator hasn't started, retrying...")
             else:
                 break
@@ -681,13 +689,34 @@ class Control:
     def moveByRollPitchYawZAsync(self, roll, pitch, yaw, z, duration, vehicle_name=''):
         with self.SharedData.lock:
             self.client.moveByRollPitchYawZAsync(roll, pitch, yaw, z, duration, vehicle_name)
+
+    def moveByRollPitchYawrateThrottleAsync(self, roll, pitch, yaw_rate, throttle, duration, vehicle_name=''):
+        with self.SharedData.lock:
+            self.client.moveByRollPitchYawrateThrottleAsync(roll, pitch, yaw_rate, throttle, duration, vehicle_name)
+
             
     # high level
     def moveByVelocityBodyFrameAsync(self, vx, vy, vz, duration, drivetrain=airsim.DrivetrainType.MaxDegreeOfFreedom, 
                                      yaw_mode=airsim.YawMode(), vehicle_name=''):
         with self.SharedData.lock:
-            self.client.moveByVelocityBodyFrameAsync(vx, vy, vz, duration, duration, drivetrain, yaw_mode, vehicle_name)
+            self.client.moveByVelocityBodyFrameAsync(vx, vy, vz, duration, drivetrain, yaw_mode, vehicle_name)
 
+    # controller gains
+    def setAngleRateControllerGains(self, angle_rate_gains, vehicle_name=''):
+        with self.SharedData.lock:
+            self.client.setAngleRateControllerGains(angle_rate_gains, vehicle_name)
+
+    def setAngleLevelControllerGains(self, angle_level_gains, vehicle_name=''):
+        with self.SharedData.lock:
+            self.client.setAngleLevelControllerGains(angle_level_gains, vehicle_name)
+
+    def setVelocityControllerGains(self, velocity_gains, vehicle_name=''):
+        with self.SharedData.lock:
+            self.client.setVelocityControllerGains(velocity_gains, vehicle_name)
+
+    def setPositionControllerGains(self, position_gains, vehicle_name=''):
+        with self.SharedData.lock:
+            self.client.setPositionControllerGains(position_gains, vehicle_name)
 
     # tracking
     def moveOnPathAsync(self, path, velocity, lookahead=-1, adaptive_lookahead=1, vehicle_name=''):
@@ -709,10 +738,11 @@ class Control:
 
         # 四旋翼加速度控制
         def move_by_acceleration_horizontal(self, ax_cmd, ay_cmd, z_cmd, duration=1):
+            print("At time ", time.time(), "LQR_fly sending command")
             # 读取自身yaw角度
             self.GroundTruth.Kinematics_update()
             state = self.GroundTruth.KinematicsState
-            angles = airsim.to_eularian_angles(state['orientation'])
+            angles = airsim.to_eularian_angles(state.orientation)
             yaw_my = angles[2]
             g = 9.8  # 重力加速度
             sin_yaw = math.sin(yaw_my)
@@ -726,7 +756,7 @@ class Control:
             return
 
         # configuration
-        dt = 0.1
+        dt = 0.5
         A = np.array([[1, 0, dt, 0],
                       [0, 1, 0, dt],
                       [0, 0, 1, 0],
@@ -741,14 +771,17 @@ class Control:
 
         plot_last_pos = [airsim.Vector3r(0, 0, -5)]
 
+        start_time = time.time()
         for t in range(1600):
+            if time.time()-start_time >10:
+                break
             # 读取当前的位置和速度
             self.GroundTruth.Kinematics_update()
             UAV_state = self.GroundTruth.KinematicsState
-            pos_now = np.array([[UAV_state['position']['x_val']], [UAV_state['position']['y_val']], [UAV_state['position']['z_val']]])
+            pos_now = np.array([[UAV_state.position.x_val], [UAV_state.position.y_val], [UAV_state.position.z_val]])
             vel_now = np.array(
-                [[UAV_state['linear_velocity']['x_val']], [UAV_state['linear_velocity']['y_val']],
-                 [UAV_state['linear_velocity']['z_val']]])
+                [[UAV_state.linear_velocity.x_val], [UAV_state.linear_velocity.y_val],
+                 [UAV_state.linear_velocity.z_val]])
             state_now = np.vstack((pos_now[0:2], vel_now[0:2]))
             # 目标状态
             state_des = np.vstack((p_traj[:, t:t + 1], v_traj[:, t:t + 1]))
@@ -771,6 +804,7 @@ class Control:
     
     # keyboard_control
     def keyboard_control(self):
+        print("keyboard_control start!")
         velocity = 3
         duration = 0.02
         ratio = 3
@@ -919,6 +953,9 @@ class Control:
                                                                                duration=duration,
                                                                                vehicle_name=vehicle_name))
         keyboard.wait('q')
+        keyboard.clear_all_hotkeys()
+        print("keyboard_control end!")
+
 
 
 class Multirotor:
@@ -929,36 +966,15 @@ class Multirotor:
     def __init__(self, SharedData):
         self.SharedData = SharedData
         self.is_localhost = SharedData.is_localhost
-        if(self.is_localhost):
-            self.client = airsim.MultirotorClient()
-        else:
-            self.client = airsim.MultirotorClient(ip=remote_host)
-        SharedData.add_resources('client', self.client)
         self.FlightControl = Control(self.SharedData)
         self.GroundTruth = self.FlightControl.GroundTruth
         SharedData.add_resources('Multirotor', self)
+        self.client = SharedData.resources['client']
 
     def __del__(self):
         self.client.reset()
         self.client.armDisarm(False)
         self.client.enableApiControl(False)
-
-    # controller gains
-    def setAngleRateControllerGains(self, angle_rate_gains, vehicle_name=''):
-        with self.SharedData.lock:
-            self.client.setAngleRateControllerGains(angle_rate_gains, vehicle_name)
-
-    def setAngleLevelControllerGains(self, angle_level_gains, vehicle_name=''):
-        with self.SharedData.lock:
-            self.client.setAngleLevelControllerGains(angle_level_gains, vehicle_name)
-
-    def setVelocityControllerGains(self, velocity_gains, vehicle_name=''):
-        with self.SharedData.lock:
-            self.client.setVelocityControllerGains(velocity_gains, vehicle_name)
-
-    def setPositionControllerGains(self, position_gains, vehicle_name=''):
-        with self.SharedData.lock:
-            self.client.setPositionControllerGains(position_gains, vehicle_name)
 
     # create trajectory
     @staticmethod
@@ -1032,24 +1048,30 @@ class Multirotor:
         with self.SharedData.lock:
             self.client.simPlotLineList(plot_traj, color_rgba=color_rgba, is_persistent=is_persistent)
 
-    # test
     def LQR_fly(self, traj_name):
+        print("LQR_fly started")
+        print("LQR_fly: waiting until takeoff")
         with self.SharedData.lock:
-            self.client.takeoffAsync().join()  # 起飞
-            self.client.moveToZAsync(-5, 1).join()  # 上升到5米高度
+            self.client.takeoffAsync() # 起飞
+            self.client.moveToZAsync(-5, 1)  # 上升到5米高度
 
+        print("LQR_fly: generating path")
         if traj_name == '0':
             path = self.LQR_0_traj()
         elif traj_name == '8':
             path = self.LQR_8_traj()
 
+        print("LQR_fly: plotting path")
         self.plot(path[0])  # 画出规划路径
 
+        print("LQR_fly: starting LQR control")
         self.FlightControl.moveOnPath_LQR(path[0], path[1], path[2])
 
         with self.SharedData.lock:
-            self.client.landAsync().join()
+            self.client.landAsync()
             self.client.armDisarm(False)  # 上锁
+
+        print("LQR_fly finished")
 
 
 # def init():

@@ -2515,7 +2515,7 @@ background-color: rgb(241, 115, 52);</string>
         <property name="geometry">
          <rect>
           <x>0</x>
-          <y>-141</y>
+          <y>0</y>
           <width>278</width>
           <height>560</height>
          </rect>
@@ -6320,7 +6320,7 @@ background-color: rgb(241, 115, 52);</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
       <item row="0" column="0">
-       <widget class="QPushButton" name="pushButton_16">
+       <widget class="QPushButton" name="control_forward">
         <property name="palette">
          <palette>
           <active>
@@ -6457,7 +6457,7 @@ background-color: rgb(241, 115, 52);</string>
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QPushButton" name="pushButton_17">
+       <widget class="QPushButton" name="control_backward">
         <property name="palette">
          <palette>
           <active>
@@ -6594,7 +6594,7 @@ background-color: rgb(241, 115, 52);</string>
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QPushButton" name="pushButton_19">
+       <widget class="QPushButton" name="control_up">
         <property name="palette">
          <palette>
           <active>
@@ -6731,7 +6731,7 @@ background-color: rgb(241, 115, 52);</string>
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QPushButton" name="pushButton_14">
+       <widget class="QPushButton" name="control_down">
         <property name="palette">
          <palette>
           <active>
@@ -6868,7 +6868,7 @@ background-color: rgb(241, 115, 52);</string>
        </widget>
       </item>
       <item row="2" column="0">
-       <widget class="QPushButton" name="pushButton_15">
+       <widget class="QPushButton" name="control_turnL">
         <property name="palette">
          <palette>
           <active>
@@ -7005,7 +7005,7 @@ background-color: rgb(241, 115, 52);</string>
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QPushButton" name="pushButton_18">
+       <widget class="QPushButton" name="control_turnR">
         <property name="palette">
          <palette>
           <active>

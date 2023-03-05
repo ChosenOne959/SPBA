@@ -1,3 +1,5 @@
+import keyboard
+
 from new_ui.show_data.Ui_Data_Window import Ui_DataWindow
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QMessageBox
@@ -28,6 +30,7 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         self.setupUi(self)
         self.Multirotor = Multirotor(self.SharedData)
         self.set_myUI()
+        self.control_busy = False
 
         # self.init_airsim()
         self.init_timer()
@@ -35,16 +38,38 @@ class DataWindow(QMainWindow, Ui_DataWindow):
     def set_myUI(self):
         self.route_button.clicked.connect(self.route)
         self.KeyboardCtrl_start.clicked.connect(self.keyboard_controler)
+        self.control_up.clicked.connect(lambda: self.controller_panel('up'))
+        self.control_down.clicked.connect(lambda: self.controller_panel('down'))
+        self.control_forward.clicked.connect(lambda: self.controller_panel('forward'))
+        self.control_backward.clicked.connect(lambda: self.controller_panel('backward'))
+        self.control_turnL.clicked.connect(lambda: self.controller_panel('turnL'))
+        self.control_turnR.clicked.connect(lambda: self.controller_panel('turnR'))
+        self.KeyboardCtrl_stop.clicked.connect(lambda: keyboard.press('q'))
+
+
 
     def keyboard_controler(self):
-        keyboard_thread = threading.Thread(target=self.Multirotor.FlightControl.keyboard_control)
-        keyboard_thread.start()
+        self.keyboard_thread = threading.Thread(target=self.keyboard_control_thread)
+        self.keyboard_thread.start()
+        print("finish")
+
+    def keyboard_control_thread(self):
+        self.controller_setDisabled(True)
+        self.KeyboardCtrl_stop.setDisabled(False)
+        self.Multirotor.FlightControl.keyboard_control()
+        self.controller_setDisabled(False)
 
     def route(self):
         if self.route_choose.currentText() == '0形路径':
-            self.Multirotor.LQR_fly('0')
+            route_thread = threading.Thread(target=self.route_thread, args='0')
         elif self.route_choose.currentText() == '8形路径':
-            self.Multirotor.LQR_fly('8')
+            route_thread = threading.Thread(target=self.route_thread, args='8')
+        route_thread.start()
+
+    def route_thread(self, para):
+        self.controller_setDisabled(True)
+        self.Multirotor.LQR_fly(para)
+        self.controller_setDisabled(False)
 
     def init_timer(self):
         self.sensor_data_interval = QTimer(self)
@@ -102,6 +127,44 @@ class DataWindow(QMainWindow, Ui_DataWindow):
     def release_airsim(self):
         del self.Multirotor
         self.sensor_data_interval.stop()
+
+    def controller_setDisabled(self, flag=True):
+        print("set controller disabled: ", flag)
+        self.route_button.setDisabled(flag)
+        self.KeyboardCtrl_start.setDisabled(flag)
+        self.KeyboardCtrl_stop.setDisabled(flag)
+        self.code_run_stop.setDisabled(flag)
+        self.code_run_start.setDisabled(flag)
+        self.control_up.setDisabled(flag)
+        self.control_down.setDisabled(flag)
+        self.control_forward.setDisabled(flag)
+        self.control_backward.setDisabled(flag)
+        self.control_turnL.setDisabled(flag)
+        self.control_turnR.setDisabled(flag)
+
+    def controller_panel(self, button):
+        velocity = 3
+        duration = 0.02
+        yaw_rate = 0.3  # in radian per second
+        vehicle_name = ""
+
+        if button == 'forward':
+            self.Multirotor.FlightControl.moveByVelocityBodyFrameAsync(velocity, 0, 0, duration=duration,vehicle_name=vehicle_name)
+        elif button == 'backward':
+            self.Multirotor.FlightControl.moveByVelocityBodyFrameAsync(-velocity, 0, 0, duration=duration,vehicle_name=vehicle_name)
+        elif button == 'up':
+            self.Multirotor.FlightControl.moveByVelocityBodyFrameAsync(0, 0, -velocity, duration=duration,vehicle_name=vehicle_name)
+        elif button == 'down':
+            self.Multirotor.FlightControl.moveByVelocityBodyFrameAsync(0, 0, velocity, duration=duration,vehicle_name=vehicle_name)
+        elif button == 'turnL':
+            self.Multirotor.FlightControl.moveByRollPitchYawrateThrottleAsync(0, 0, yaw_rate, 0, duration=duration, vehicle_name=vehicle_name)
+        elif button == 'turnR':
+            self.Multirotor.FlightControl.moveByRollPitchYawrateThrottleAsync(0, 0, yaw_rate, 0, duration=duration, vehicle_name=vehicle_name)
+
+
+
+
+
 
     def time_out(self):
         self.Multirotor.GroundTruth.update()
@@ -413,9 +476,6 @@ class DataWindow(QMainWindow, Ui_DataWindow):
                                                 name="temperature")
             self.environment_temperature_plot.setLabel('bottom', 'time/s')
             self.environment_temperature_plot.setLabel('left', "Environment_Temperature")
-
-
-
 
     def closeEvent(self, event):
         """

@@ -266,10 +266,10 @@ class SettingWindow(QMainWindow, Ui_SettingWindow):
     def back(self):
         # print(self.SharedData.WindowSeries.pop())
         # self.close()
-        self.destroy()
         self.SharedData.WindowSeries.pop()
+        self.destroy()
         self.SharedData.WindowSeries[0].show()
-        # !!!need to destroy the this window object( including memory & thread)
+        # !!!need to destroy the window object( including memory & thread)
         # I have no idea how to do it
 
     def show_params(self):
@@ -319,8 +319,6 @@ class SettingWindow(QMainWindow, Ui_SettingWindow):
             self.noise_settings_enable('user', False)
             self.gimbal_settings_enable('user', False)
 
-
-    
     def noise_settings_enable(self, position: str, enabled):
         if position == 'default':
             self.default_noise_image_type_choose.setEnabled(enabled)
