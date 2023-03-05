@@ -2,6 +2,8 @@ from xmlrpc.server import SimpleXMLRPCServer
 import socket
 import json
 import threading
+import re
+import subprocess
 
 # private ip of remote server
 remote_host = '192.168.31.69'
@@ -67,16 +69,28 @@ class tcp_mapping:
         print('Event: Receive mapping request from%s:%d.' % local_addr)
         return
 
+
 class server_API:
     def __init__(self, is_localhost=True):
+        print('server: initializing server_API')
         self.is_localhost = is_localhost
+        self.param_data = self.init_param_data()
         if(is_localhost):
-            with open('./Setting_Path/configuration_file.json', 'r') as cfile_path:
+            print('server: reading path data in configuration.json')
+            with open('./configuration_file.json', 'r') as cfile_path:
                 self.path_data = json.load(cfile_path)['path']
         else:
-            with open('./Setting_Path/remote_configuration_file.json', 'r') as cfile_path:
+            print('server: reading path data in remote_configuration.json')
+            with open('./remote_configuration_file.json', 'r') as cfile_path:
                 self.path_data = json.load(cfile_path)['path']
-        print(self.path_data)
+        print('server: path data is '+str(self.path_data))
+
+    @staticmethod
+    def init_param_data():
+        param_data = {'Rotor_params': {'Thrust': {'Name': 'C_T'}, 'Torque': {'Name': 'C_P'}, 'Air': {'Name': 'air_density'}, 'Revolutions': {'Name': 'max_rpm'}}}
+        for parameter, value in param_data['Rotor_params'].items():
+            value['DataType'] = 'real_T'
+        return param_data
 
     def json_dump(self, filename: str, data):
         print("json_dump!")
@@ -88,6 +102,78 @@ class server_API:
         with open(self.path_data[filename], 'r', encoding='utf8')as file:
             data = json.load(file)
         return data
+
+    def set_param(self, param: str, value):
+        pass
+
+    def set_params(self, param_data={}):
+        print('set params!')
+        if param_data == {}:
+            print('failure: received empty params')
+            return False
+        self.param_data = param_data
+        for param_kind, params in self.param_data.items():
+            param_list = []
+            for param, attr in self.param_data[param_kind].items():
+                new_str = attr['DataType'] + ' ' + attr['Name'] + ' = ' + attr['Value'] + 'f'
+                old_str = attr['OldStr']
+                param_list.append((old_str, new_str))
+                attr['OldStr'] = new_str
+            with open(self.path_data[param_kind], "r+", encoding="utf-8") as f1:
+                lines = []
+                for line in f1:
+                    for str_tuple in param_list:
+                        if str_tuple[0] in line:
+                            line = line.replace(*str_tuple)
+                            lines.append(line)
+                            break
+
+            with open(self.path_data[param_kind], "w+", encoding="utf-8") as f1:
+                for line in lines:
+                    f1.write(line)
+        return True
+
+    def get_params(self):
+        print('get params!')
+        with open(self.path_data['Rotor_params'], "r+") as file:
+            for line in file:
+                for param, attr in self.param_data['Rotor_params'].items():
+                    pattern = attr['DataType']+' '+attr['Name']+' = (.*?)f'
+                    value_str =  "".join(re.findall(pattern, line))
+                    old_str = attr['DataType']+' '+attr['Name']+' = '+value_str+'f'
+                    if value_str != '':
+                        attr['Value'] = eval(value_str)
+                        attr['OldStr'] = old_str
+        return self.param_data
+                # Thrust_str = "".join(re.findall(r'real_T C_T = (.*?)f', line))
+                # Torque_str = "".join(re.findall(r'real_T C_P = (.*?)f', line))
+                # Air_str = "".join(re.findall(r'real_T air_density = (.*?)f', line))
+                # Revolutions_str = "".join(re.findall(r'real_T max_rpm = (.*?)f', line))
+                # if Thrust_str != "":
+                #     self.Thrust_old_str = "real_T C_T = " + Thrust_str
+                #     self.Thrust_SpinBox.setProperty("value", eval(Thrust_str))
+                # if Torque_str != "":
+                #     self.Torque_old_str = "real_T C_P = " + Torque_str
+                #     self.Torque_SpinBox.setProperty("value", eval(Torque_str))
+                # if Air_str != "":
+                #     self.Air_old_str = "real_T air_density = " + Air_str
+                #     self.Air_SpinBox.setProperty("value", eval(Air_str))
+                # if Revolutions_str != "":
+                #     self.Revolutions_old_str = "real_T max_rpm = " + Revolutions_str
+                #     self.Revolutions_SpinBox.setProperty("value", eval(Revolutions_str))
+
+    def start_simulator(self):
+        # 管理员身份运行Set-ExecutionPolicy RemoteSigned
+        if self.is_localhost:
+            args = ["powershell", "../start.ps1", "$True"]
+        else:
+            args = ["powershell", "../start.ps1", "$False"]
+        shell = subprocess.Popen(args, stdout=subprocess.PIPE)
+        output_bytes = shell.stdout.read()
+        output = output_bytes.decode('utf-8')
+        print(output)
+        return True
+
 
 def start_server(is_localhost=True):
     obj = server_API(is_localhost=is_localhost)
