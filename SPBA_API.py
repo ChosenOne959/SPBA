@@ -694,7 +694,11 @@ class Control:
         with self.SharedData.lock:
             self.client.moveByRollPitchYawrateThrottleAsync(roll, pitch, yaw_rate, throttle, duration, vehicle_name)
 
-            
+    def moveByRollPitchYawrateZAsync(self, roll, pitch, yaw_rate, z, duration, vehicle_name=''):
+        with self.SharedData.lock:
+            self.client.moveByRollPitchYawrateZAsync(roll, pitch, yaw_rate, z, duration, vehicle_name)
+
+
     # high level
     def moveByVelocityBodyFrameAsync(self, vx, vy, vz, duration, drivetrain=airsim.DrivetrainType.MaxDegreeOfFreedom, 
                                      yaw_mode=airsim.YawMode(), vehicle_name=''):

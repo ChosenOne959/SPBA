@@ -165,14 +165,21 @@ class server_API:
     def start_simulator(self):
         # 管理员身份运行Set-ExecutionPolicy RemoteSigned
         if self.is_localhost:
-            args = ["powershell", "../start.ps1", "$True"]
+            args = ["powershell", "./start.ps1", "$True"]
         else:
-            args = ["powershell", "../start.ps1", "$False"]
+            args = ["powershell", "./start.ps1", "$False"]
         shell = subprocess.Popen(args, stdout=subprocess.PIPE)
         output_bytes = shell.stdout.read()
         output = output_bytes.decode('utf-8')
         print(output)
         return True
+
+    def kill_task(self, task_name: str):
+        args = ["powershell", "./KillTask.ps1", task_name]
+        shell = subprocess.Popen(args, stdout=subprocess.PIPE)
+        return True
+
+
 
 
 def start_server(is_localhost=True):

@@ -2,6 +2,7 @@ from xmlrpc.client import ServerProxy
 import threading, RPC.RPC_server
 import SPBA_API
 import time
+import subprocess
 
 # public ip of remote server
 remote_host = '202.120.37.157'
@@ -45,3 +46,11 @@ class RPC_client:
 
     def start_simulator(self):
         return self.server.start_simulator()
+
+    def kill_task(self, local: bool, task_name: str):
+        if local:
+            args = ["powershell", "./KillTask.ps1", task_name]
+            shell = subprocess.Popen(args, stdout=subprocess.PIPE)
+            return True
+        else:
+            return self.server.kill_task(task_name)
