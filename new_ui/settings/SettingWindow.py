@@ -14,25 +14,26 @@ import re
 import json
 import threading
 from Work_Place.keyboard_controler import keyboard_control
-from new_ui.settings.Ui_Setting_Window import Ui_SettingWindow
-from SPBA_API import SettingClient
+from new_ui.settings.Ui_settings import Ui_SettingWindow
+from new_ui.SPBA_API import SettingClient
 from PyQt5.QtWidgets import QMainWindow, QMessageBox
 from new_ui.show_data.DataWindow import DataWindow
 from new_ui.controller.ControlWindow import ControlWindow
-
-
+from new_ui.settings.weather import weather_adjust
 class SettingWindow(QMainWindow, Ui_SettingWindow):
     def __init__(self, SharedData, parent=None):
         self.SharedData = SharedData
         super(SettingWindow, self).__init__(parent)
+        self.Car_Image_Path = 'D:/SPBA_NEW_UI/new/SPBA/new_ui/image_resource/unmanned_automobile.png'
+        self.Multirotor_Image_Path = 'D:/SPBA_NEW_UI/new/SPBA/new_ui/image_resource/multirotor.png'
         self.setupUi(self)
         self.set_myUI()
-
+    
         self.SettingClient = SettingClient(self.SharedData)
         self.AirSimSettings = self.SettingClient.AirSimSettings
         self.AirSimParameters = self.SettingClient.AirSimParameters
         self.RPC_client = self.SharedData.resources['RPC_client']
-        self.airsim_settings_config()
+        
 
         self.param_data = SharedData.param_data
         self.show_params()
@@ -43,7 +44,7 @@ class SettingWindow(QMainWindow, Ui_SettingWindow):
         set_myUI : set basic signal slots
         """
         self.backButton.clicked.connect(self.back)
-        self.forwardButton.clicked.connect(self.forward)
+        self.forwardButton.clicked.connect(self.Jump_To_Data_Window)
 
         self.user_defined_camera_checkBox.clicked.connect(lambda: self.user_defined_enable())
         self.user_noise_checkBox.clicked.connect(lambda: self.noise_settings_enable('user', self.user_noise_checkBox.isChecked()))
@@ -63,7 +64,8 @@ class SettingWindow(QMainWindow, Ui_SettingWindow):
         self.Torque_SpinBox.valueChanged.connect(lambda: self.alter('Rotor_params', "Torque", self.Torque_SpinBox.value()))
         self.Air_SpinBox.valueChanged.connect(lambda: self.alter('Rotor_params', "Air", self.Air_SpinBox.value()))
         self.Revolutions_SpinBox.valueChanged.connect(lambda: self.alter('Rotor_params', "Revolutions", self.Revolutions_SpinBox.value()))
-
+        self.comboBox.currentIndexChanged.connect(self.Model_Display)
+        self.showGraphic(self.Multirotor_Image_Path)
         # more parameters will be added later
         # self.Diameter_SpinBox.valueChanged.connect(lambda: self.alter("Diameter"))
         # self.Height_SpinBox.valueChanged.connect(lambda: self.alter("Height"))
@@ -92,6 +94,30 @@ class SettingWindow(QMainWindow, Ui_SettingWindow):
     #     vehicle_settings = settings.vehicle_settings(cameras=cameras)
     #     vehicles = settings.vehicles_add("SimpleFlight", vehicle_settings)
     #     settings.set_vehicles(vehicles)
+
+    def Model_Display(self):
+        Text = self.comboBox.currentText()
+        if Text == '无人车':
+            self.showGraphic(self.Car_Image_Path)
+        if Text == '四旋翼':
+            self.showGraphic(self.Multirotor_Image_Path)
+
+    def Jump_To_Data_Window(self):
+        vehicle_type = self.comboBox.currentText()
+        if vehicle_type == "四旋翼":
+            self.airsim_settings_config()
+        elif vehicle_type == "无人车":
+            self.Airsim_Car_Setting()
+        self.forward()
+
+    def Airsim_Car_Setting(self):
+        self.SharedData.Vehicle_Type_Change(1)        #change the simulator type
+        self.SettingClient = SettingClient(self.SharedData)
+        self.AirSimSettings = self.SettingClient.AirSimSettings
+        settings = self.AirSimSettings
+        settings.reset()
+        settings.set_vehicle_type("Car")
+        
 
     def airsim_settings_config(self):
         """
@@ -202,7 +228,7 @@ class SettingWindow(QMainWindow, Ui_SettingWindow):
             vehicles = settings.vehicles_add(vehicle_settings=vehicle_settings)
             settings.set_vehicles(vehicles)
         else:
-            capture_settings = settings.capture_settings(image_type=0, width=788, height=520, fov_degrees=90,
+            capture_settings = settings.capture_settings(image_type=2, width=700, height=321, fov_degrees=90,
                                                              auto_exposure_speed=100, auto_exposure_bias=0,
                                                              auto_exposure_max_brightness=0.64,
                                                              auto_exposure_min_brightness=0.03,
@@ -250,15 +276,18 @@ class SettingWindow(QMainWindow, Ui_SettingWindow):
 
     def forward(self):
         self.SettingClient.AirSimParameters.set_params()
-        self.airsim_settings_config()
-
+        #self.airsim_settings_config()
+     
         self.start_simulator()
-
         # first initiate ControlWindow, then DataWindow
         # self.ControlWindow = ControlWindow(self.SharedData)
         # self.SharedData.append_window(self.ControlWindow)
         self.DataWindow = DataWindow(self.SharedData)
         self.SharedData.append_window(self.DataWindow)
+        # rain = self.rain_value.value()
+        # snow = self.snow_value.value()
+        # fog = self.fog_value.value()
+        # weather_adjust(rain,snow,fog)
         self.DataWindow.show()
         # self.ControlWindow.show()
         self.close()
@@ -371,6 +400,30 @@ class SettingWindow(QMainWindow, Ui_SettingWindow):
         # dpath = dpath.replace('/', '\\')
         self.record_path_edit.setText(dpath)
 
+    
+    def showGraphic(self,path):
+        """
+        showGraphic : show drone model 
+        further : the drone model picture will change as the choice of user changes 
+
+        Args:
+            path : the path of picture 
+        """
+        img=cv2.imread(path)
+        img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+        x=img.shape[1]
+        y=img.shape[0]
+        ratio=float(y/x)
+        newx=160
+        newy=int(newx*ratio)
+        img=cv2.resize(img,(newx,newy))
+        frame=QImage(img,newx,newy,QImage.Format_RGB888)
+        pix=QPixmap.fromImage(frame)
+        item=QGraphicsPixmapItem(pix)
+        scene=QGraphicsScene()
+        scene.addItem(item)
+        self.graphicsView.setScene(scene)
+        self.graphicsView.show()
 
             
 

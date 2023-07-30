@@ -1,6 +1,6 @@
 import keyboard
 from Work_Place import global_value
-import SPBA_API as SPBA
+from new_ui import SPBA_API as SPBA
 def keyboard_control():
     velocity=3;
     duration=0.02

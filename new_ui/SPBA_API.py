@@ -3,8 +3,8 @@ from typing import Any
 import msgpackrpc.error
 import keyboard
 
-import RPC.RPC_client as RPC_client
-import RPC.RPC_server as RPC_server
+from new_ui.RPC import RPC_client as RPC_client
+from new_ui.RPC import RPC_server as RPC_server
 
 import airsim
 import numpy as np
@@ -27,8 +27,10 @@ class SharedData:
         self.configurefile_path = './configuration_file.json'
         self.configure_data = {'path': {}}
         self.resources = {}
+        self.Vehicle_Type = 0     #0 represents Multirotor type
         self.param_data = self.init_param_data()
         self.lock = threading.Lock()    # 控制airsimAPI资源访问的锁
+        
 
     @staticmethod
     def init_param_data():
@@ -44,6 +46,9 @@ class SharedData:
     def append_window(self, Window):
         self.WindowSeries.append(Window)
         return self
+
+    def Vehicle_Type_Change(self,Type = 0):
+        self.Vehicle_Type =Type
 
 
 class SettingClient:
@@ -99,6 +104,7 @@ class AirSimSettings:
         self.RPC_client = self.SharedData.resources['RPC_client']
         self.settings = self.RPC_client.json_load("settings")
         self.SharedData.add_resources('AirSimSettings', self)
+        
 
     def __del__(self):
         # better kill the thread
@@ -167,6 +173,16 @@ class AirSimSettings:
         """
         wind_speed = {"X": x, "Y": y, "Z": z}
         self.set('Wind', wind_speed)
+
+    def set_vehicle_type(self,vehicle_type = "Multirotor"):
+        """
+        set_vehicle_type set the type of simulation model
+
+        Args:
+            vehicle_type: _description_. Defaults to "Multirotor".
+        """
+        self.set('SimMode',vehicle_type)
+        
 
     def set_camera_director(self, follow_distance=-3, x=nan, y=nan, z=nan, pitch=nan, roll=nan, yaw=nan):
         """
@@ -456,7 +472,7 @@ class AirSimSettings:
         return subwindow
 
     @staticmethod
-    def capture_settings(image_type=0, width=256, height=144, fov_degrees=90, auto_exposure_speed=100,
+    def capture_settings(image_type=0, width=891, height=391, fov_degrees=90, auto_exposure_speed=100,
                          auto_exposure_bias=0, auto_exposure_max_brightness=0.64, auto_exposure_min_brightness=0.03,
                          motion_blur_amount=0, target_gamma=1.0, projection_mode="", ortho_width=5.12):
         """
@@ -597,7 +613,7 @@ class GroundTruthEstimation(threading.Thread):
             self.update_sensor_data()
             self.KinematicsState = self.client.simGetGroundTruthKinematics()
             self.EnvironmentState = self.client.simGetGroundTruthEnvironment()
-            self.RotorStates = self.client.getRotorStates()
+            #self.RotorStates = self.client.getRotorStates()
             self.update_image()
         print("At time ", time.time(), "Simulator Data Updated!")
         # estimate
@@ -654,7 +670,10 @@ class Control:
         while True:
             try:
                 if (SharedData.is_localhost):
-                    self.client = airsim.MultirotorClient()
+                    if SharedData.Vehicle_Type == 0:
+                        self.client = airsim.MultirotorClient()
+                    elif SharedData.Vehicle_Type == 1:
+                        self.client = airsim.CarClient()
                 else:
                     self.client = airsim.MultirotorClient(ip=remote_host)
                 SharedData.add_resources('client', self.client)
@@ -810,7 +829,7 @@ class Control:
     def keyboard_control(self):
         print("keyboard_control start!")
         velocity = 3
-        duration = 0.02
+        duration = 1
         ratio = 3
         velocity_shift = velocity * ratio
         vehicle_name = ""
@@ -1076,6 +1095,21 @@ class Multirotor:
             self.client.armDisarm(False)  # 上锁
 
         print("LQR_fly finished")
+
+
+class Car:
+    def __init__(self, SharedData):
+        self.SharedData = SharedData
+        self.is_localhost = SharedData.is_localhost
+        self.FlightControl = Control(self.SharedData)
+        self.GroundTruth = self.FlightControl.GroundTruth
+        SharedData.add_resources('Car', self)
+        self.client = SharedData.resources['client']
+
+    def __del__(self):
+        self.client.reset()
+        self.client.armDisarm(False)
+        self.client.enableApiControl(False)
 
 
 # def init():

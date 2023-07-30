@@ -4919,7 +4919,7 @@ background-color: rgb(241, 115, 52);</string>
      <string notr="true">background-color: rgb(242, 249, 255);</string>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tab_6">
      <attribute name="title">
@@ -5576,9 +5576,9 @@ background-color: rgb(241, 115, 52);</string>
      <widget class="QGraphicsView" name="user_defined_view">
       <property name="geometry">
        <rect>
-        <x>0</x>
+        <x>60</x>
         <y>0</y>
-        <width>891</width>
+        <width>751</width>
         <height>391</height>
        </rect>
       </property>
@@ -8124,7 +8124,7 @@ background-color: rgb(241, 115, 52);</string>
      <string notr="true">background-color: qlineargradient(spread:reflect, x1:0.578, y1:0.551182, x2:0.940299, y2:0.023, stop:0.442786 rgba(0, 49, 136, 221), stop:1 rgba(255, 255, 255, 255));</string>
     </property>
     <property name="text">
-     <string>  无人载体的虚拟环境开发平台</string>
+     <string> 无人机飞控设计虚拟仿真平台</string>
     </property>
    </widget>
    <widget class="QWidget" name="layoutWidget">

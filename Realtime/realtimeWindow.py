@@ -6,7 +6,7 @@ from PyQt5.QtGui import QPixmap,QImage
 from PyQt5.QtWidgets import QGraphicsScene, QGraphicsPixmapItem
 from PyQt5.QtCore import QTimer 
 import airsim
-import SPBA_API as SPBA
+import new_ui.SPBA_API as SPBA
 
 class MyRealtime(QtWidgets.QWidget,Ui_Realtime):
     def __init__(self,parent=None):

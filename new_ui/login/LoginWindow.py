@@ -5,7 +5,7 @@ from PyQt5 import QtWidgets
 from new_ui.login.Ui_Login import Ui_login
 from new_ui.settings.SettingWindow import SettingWindow
 import json
-from SPBA_API import SharedData
+from new_ui.SPBA_API import SharedData
 
 class LoginWindow(QMainWindow, Ui_login):
     def __init__(self, parent=None):
@@ -22,9 +22,7 @@ class LoginWindow(QMainWindow, Ui_login):
         self.show()
         self.set_localhost(False)
         self.remote_button.setChecked(True)
-
         self.read_configuration_file()
-
         self.path_button.clicked.connect(self.open_file)
         self.software_choose.currentIndexChanged.connect(self.path_edit.clear)
         self.path_edit.inputRejected.connect(lambda: showErrorDialog("path"))

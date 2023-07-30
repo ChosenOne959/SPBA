@@ -1,8 +1,8 @@
-from Setting_Path.settingWindow import MyMainWindow
+from new_ui.login.LoginWindow import LoginWindow
 import sys
-from PyQt5.QtWidgets import QApplication    
+from PyQt5.QtWidgets import QApplication
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    myWin = MyMainWindow()
+    myWin = LoginWindow()
     myWin.show()
-    sys.exit(app.exec_())    
+    sys.exit(app.exec_())

@@ -1,6 +1,7 @@
 from xmlrpc.client import ServerProxy
-import threading, RPC.RPC_server
-import SPBA_API
+import threading
+from new_ui.RPC import RPC_server
+import new_ui.SPBA_API as SPBA_API
 import time
 import subprocess
 
@@ -17,7 +18,7 @@ class RPC_client:
             # self.server_thread = threading.Thread(target=RPC.RPC_server.start_server(), args=(self.is_localhost)).start()
             # print('client: initializing local server')
             # self.server = ServerProxy("http://localhost:13333", allow_none=True) # 初始化服务器
-            self.server = RPC.RPC_server.server_API(is_localhost=True)
+            self.server = RPC_server.server_API(is_localhost=True)
         else:
             self.server = ServerProxy("http://"+remote_host+":13333", allow_none=True) # 初始化服务器
         print('RPC_client started')

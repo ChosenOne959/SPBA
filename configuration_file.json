@@ -1,0 +1,11 @@
+{
+    "path":{
+        "Airsim":"D:/AirSim",
+        "settings":"C:Users/asus/Documents/AirSim/settings.json",
+        "AirSimSettings":"C:Users/asus/Documents/AirSim/settings.json",
+        "Rotor_params":"D:/AirSim/Airsim/AirLib/include/vehicles/multirotor/RotorParams.hpp",
+        "UE4dir":"C:/Program Files (x86)/Epic Games/Launcher/Engine/Binaries/Win64/UnrealVersionSelector.exe",
+        "UnrealProject":"E:/Unreal Project/SunTemple",
+        "UnrealProject_uproject":"E:/Unreal Project/SunTemple/SunTemple.uproject"
+    }
+}

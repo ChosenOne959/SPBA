@@ -8,7 +8,7 @@ from PyQt5.QtGui import QPixmap,QImage
 import os
 import numpy as np
 from Work_Place import global_value
-import SPBA_API as SPBA
+import new_ui.SPBA_API as SPBA
 
 class MysensorWindow(QtWidgets.QWidget,Ui_sensorData):
     """

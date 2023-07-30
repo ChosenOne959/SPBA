@@ -1,6 +1,6 @@
 import keyboard
 
-from new_ui.show_data.Ui_Data_Window import Ui_DataWindow
+from new_ui.show_data.Ui_showdata_v2 import Ui_DataWindow
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QMessageBox
 from PyQt5.QtCore import QTimer
@@ -9,10 +9,13 @@ import cv2
 from PyQt5.QtWidgets import QApplication, QGraphicsView, QMessageBox, QGraphicsScene, QGraphicsPixmapItem
 from PyQt5.QtGui import QPixmap, QImage
 import os
-import SPBA_API
+import new_ui.SPBA_API as SPBA_API
 import threading
-from SPBA_API import Multirotor
+from new_ui.SPBA_API import Multirotor
+from new_ui.SPBA_API import Car
+from new_ui.SPBA_API import SettingClient
 from new_ui.controller.keyboard_controler import keyboard_control
+import threading
 import time
 import subprocess
 
@@ -29,7 +32,7 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         self.SharedData = SharedData
         super(DataWindow, self).__init__(parent)
         self.setupUi(self)
-        self.Multirotor = Multirotor(self.SharedData)
+        self.Classification()
         self.set_myUI()
         self.control_busy = False
         self.record_flag = False
@@ -39,6 +42,12 @@ class DataWindow(QMainWindow, Ui_DataWindow):
 
         # self.init_airsim()
         self.init_timer()
+
+    def Classification(self):
+        if self.SharedData.Vehicle_Type == 0 :
+            self.Client = Multirotor(self.SharedData)
+        elif self.SharedData.Vehicle_Type ==1 :
+            self.Client = Car(self.SharedData)
 
     def set_myUI(self):
         self.route_button.clicked.connect(self.route)
@@ -55,7 +64,7 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         self.replay_stop_button.clicked.connect(lambda: self.replay(False))
         self.replay_button.setDisabled(True)
         self.replay_stop_button.setDisabled(True)
-        self.code_run_start.clicked.connect(lambda: self.runCode())
+        self.code_run_start.clicked.connect(lambda: self.running())
         self.code_run_start.clicked.connect(lambda: self.stopCode())
 
     def end_KeyboardCtrl(self):
@@ -66,7 +75,7 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         if self.replay_flag:
             self.replay_count += 1
         else:
-            self.Multirotor.GroundTruth.update()
+            self.Client.GroundTruth.update()
             if self.record_flag:
                 self.record_length += 1
         self.show_all_data()
@@ -75,18 +84,18 @@ class DataWindow(QMainWindow, Ui_DataWindow):
     def show_all_data(self):
         self.plot_clear()
         if not self.replay_flag:
-            imu_data = self.Multirotor.GroundTruth.ImuData
-            barometer_data = self.Multirotor.GroundTruth.BarometerData
-            magnetometer_data = self.Multirotor.GroundTruth.MagnetometerData
-            gps_data = self.Multirotor.GroundTruth.GpsData
-            kinematics_data = self.Multirotor.GroundTruth.KinematicsState
-            environment_data = self.Multirotor.GroundTruth.EnvironmentState
-            front_center_img = main_view_img = self.Multirotor.GroundTruth.CameraImages[0]
-            front_left_img = self.Multirotor.GroundTruth.CameraImages[1]
-            front_right_img = self.Multirotor.GroundTruth.CameraImages[2]
-            bottom_center_img = self.Multirotor.GroundTruth.CameraImages[3]
-            back_center_img = self.Multirotor.GroundTruth.CameraImages[4]
-            user_defined_img = self.Multirotor.GroundTruth.CameraImages[5]
+            imu_data = self.Client.GroundTruth.ImuData
+            barometer_data = self.Client.GroundTruth.BarometerData
+            magnetometer_data = self.Client.GroundTruth.MagnetometerData
+            gps_data = self.Client.GroundTruth.GpsData
+            kinematics_data = self.Client.GroundTruth.KinematicsState
+            environment_data = self.Client.GroundTruth.EnvironmentState
+            front_center_img = main_view_img = self.Client.GroundTruth.CameraImages[0]
+            front_left_img = self.Client.GroundTruth.CameraImages[1]
+            front_right_img = self.Client.GroundTruth.CameraImages[2]
+            bottom_center_img = self.Client.GroundTruth.CameraImages[3]
+            back_center_img = self.Client.GroundTruth.CameraImages[4]
+            user_defined_img = self.Client.GroundTruth.CameraImages[5]
 
             self.time_count()
             self.plot_data("imu", imu_data)
@@ -95,7 +104,8 @@ class DataWindow(QMainWindow, Ui_DataWindow):
             self.plot_data("magnetometer", magnetometer_data)
             self.plot_data("kinematics", kinematics_data)
             self.plot_data("environment", environment_data)
-            self.showGraphic(self.user_defined_view, main_view_img)
+            #self.showGraphic(self.user_defined_view, user_defined_img)
+            self.showGraphic_user(user_defined_img)
             # self.showGraphic(self.front_center_view, front_center_img)
             self.showGraphic(self.front_left_view, front_left_img)
             self.showGraphic(self.front_right_view, front_right_img)
@@ -107,11 +117,12 @@ class DataWindow(QMainWindow, Ui_DataWindow):
                 self.record_images['front_right'].append(front_right_img)
                 self.record_images['bottom_center'].append(bottom_center_img)
                 self.record_images['back_center'].append(back_center_img)
-                self.record_images['user_defined'].append(user_defined_img)
+                #self.record_images['user_defined'].append(user_defined_img)
         else:
             self.time_count()
             self.plot_record_data()
             self.showGraphic(self.user_defined_view, self.record_images['user_defined'][self.replay_count])
+            
             # self.showGraphic(self.front_center_view, self.record_images['front_center'][self.replay_count])
             self.showGraphic(self.front_left_view, self.record_images['front_left'][self.replay_count])
             self.showGraphic(self.front_right_view, self.record_images['front_right'][self.replay_count])
@@ -161,13 +172,13 @@ class DataWindow(QMainWindow, Ui_DataWindow):
     def keyboard_control_thread(self):
         self.controller_setDisabled(True)
         self.KeyboardCtrl_stop.setDisabled(False)
-        self.Multirotor.FlightControl.keyboard_control()
+        self.Client.FlightControl.keyboard_control()
         self.controller_setDisabled(False)
 
     def route_thread(self, para):
         print("Routing")
         self.controller_setDisabled(True)
-        self.Multirotor.LQR_fly(para)
+        self.Client.LQR_fly(para)
         self.controller_setDisabled(False)
         print("Routing finished")
 
@@ -186,10 +197,14 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         self.display_data_clear()
 
     def end_task(self):
-        # del self.Multirotor
+        # del self.Client
         # self.sensor_data_interval.stop()
         self.SharedData.resources["RPC_client"].kill_task(True, "UE4Editor.exe")
         self.SharedData.resources["RPC_client"].kill_task(False, "Python.exe")
+
+    def running(self):
+        runcode_thread = threading.Thread(target=self.runCode)
+        runcode_thread.start()
 
     def runCode(self):
         """
@@ -204,10 +219,11 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         self.output_edit.append(run_date)
         self.output_edit.append(run_clock)
         flag = 0
-        code = self.output_edit.toPlainText()
+        code = self.code_edit.toPlainText()
         file_path = "codefile.py "
         with open(file_path, 'w+') as codefile:
             codefile.write(code)
+            print("write codefile")
         try:
             subprocess.check_call("python codefile.py 2>error.txt ", shell=True)
             '''
@@ -228,7 +244,7 @@ class DataWindow(QMainWindow, Ui_DataWindow):
             print("compiled successfully!!")
             self.output_edit.append("compiled successfully!!")
         os.remove("error.txt")
-        os.remove("codefile.py")
+        #os.remove("codefile.py")
         self.controller_setDisabled(False)
 
     def stopCode(self):
@@ -255,17 +271,17 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         vehicle_name = ""
 
         if button == 'forward':
-            self.Multirotor.FlightControl.moveByVelocityBodyFrameAsync(velocity, 0, 0, duration=duration,vehicle_name=vehicle_name)
+            self.Client.FlightControl.moveByVelocityBodyFrameAsync(velocity, 0, 0, duration=duration,vehicle_name=vehicle_name)
         elif button == 'backward':
-            self.Multirotor.FlightControl.moveByVelocityBodyFrameAsync(-velocity, 0, 0, duration=duration,vehicle_name=vehicle_name)
+            self.Client.FlightControl.moveByVelocityBodyFrameAsync(-velocity, 0, 0, duration=duration,vehicle_name=vehicle_name)
         elif button == 'up':
-            self.Multirotor.FlightControl.moveByVelocityBodyFrameAsync(0, 0, -velocity, duration=duration,vehicle_name=vehicle_name)
+            self.Client.FlightControl.moveByVelocityBodyFrameAsync(0, 0, -velocity, duration=duration,vehicle_name=vehicle_name)
         elif button == 'down':
-            self.Multirotor.FlightControl.moveByVelocityBodyFrameAsync(0, 0, velocity, duration=duration,vehicle_name=vehicle_name)
+            self.Client.FlightControl.moveByVelocityBodyFrameAsync(0, 0, velocity, duration=duration,vehicle_name=vehicle_name)
         elif button == 'turnL':
-            self.Multirotor.FlightControl.moveByRollPitchYawrateZAsync(0, 0, yaw_rate, 0, duration=duration, vehicle_name=vehicle_name)
+            self.Client.FlightControl.moveByRollPitchYawrateZAsync(0, 0, yaw_rate, 0, duration=duration, vehicle_name=vehicle_name)
         elif button == 'turnR':
-            self.Multirotor.FlightControl.moveByRollPitchYawrateZAsync(0, 0, -yaw_rate, 0, duration=duration, vehicle_name=vehicle_name)
+            self.Client.FlightControl.moveByRollPitchYawrateZAsync(0, 0, -yaw_rate, 0, duration=duration, vehicle_name=vehicle_name)
 
     def time_count(self):
         if len(self.time_axis) == 0:
@@ -637,6 +653,22 @@ class DataWindow(QMainWindow, Ui_DataWindow):
         scene.addItem(item)
         window.setScene(scene)
         window.show()
+    
+    def showGraphic_user(self,img):
+        x=img.shape[1]
+        y=img.shape[0]
+        ratio=float(y/x)
+        newx=680
+        newy=int(newx*ratio)
+        img=cv2.resize(img,(newx,newy))
+        frame=QImage(img,newx,newy,QImage.Format_RGB888)
+        pix=QPixmap.fromImage(frame)
+        item=QGraphicsPixmapItem(pix)
+        scene=QGraphicsScene()
+        scene.addItem(item)
+        self.user_defined_view.setScene(scene)
+        self.user_defined_view.show()
+
 
     def plot_data(self, datatype, data):
 

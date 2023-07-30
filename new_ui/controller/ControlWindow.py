@@ -15,7 +15,7 @@ from new_ui.controller.keyboard_controler import keyboard_control
 from new_ui.controller.Ui_Control_Window import Ui_ControlWindow
 import json
 import threading
-from SPBA_API import Multirotor
+from new_ui.SPBA_API import Multirotor
 
 
 class ControlWindow(QtWidgets.QWidget, Ui_ControlWindow):

@@ -1,10 +1,10 @@
+# -*- coding: utf-8 -*-
 from xmlrpc.server import SimpleXMLRPCServer
 import socket
 import json
 import threading
 import re
 import subprocess
-
 # private ip of remote server
 remote_host = '192.168.31.69'
 
@@ -169,9 +169,9 @@ class server_API:
         else:
             args = ["powershell", "./start.ps1", "$False"]
         shell = subprocess.Popen(args, stdout=subprocess.PIPE)
-        output_bytes = shell.stdout.read()
-        output = output_bytes.decode('utf-8')
-        print(output)
+        # output_bytes = shell.stdout.read()
+        # output = output_bytes.decode('utf-8')
+        # print(output)
         return True
 
     def kill_task(self, task_name: str):
